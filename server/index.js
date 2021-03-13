@@ -1,12 +1,10 @@
+
+// Required
 const express = require('express')
 const socketio = require('socket.io')
 const http = require('http')
 const client_io = require('socket.io-client')
-const { nextTick } = require('process')
-
-// Με την εντολή process.argv, έχω πρόσβαση στα arguments που δίνω στο τέρμιναλ
-
-const PORT = process.argv[2] || 5000
+const sha1 = require('sha1')
 
 const app = express()
 const server = http.createServer(app)
@@ -16,25 +14,54 @@ const io = socketio(server, {
   },
 })
 
+// Juice
+const IP_PORT = process.argv[2]
+const HASH = sha1(IP_PORT)
+
+const separator = IP_PORT.indexOf(':')
+const IP = IP_PORT.slice(0,separator)
+const PORT = IP_PORT.slice(separator+1)
+
+const BOOTSTRAP ='localhost:3000'
+
 // το παρακάτω γίνεται fireup, όταν στον client
 // εκτελείται η γραμμή let socket = io(localhost:PORT)
 
-io.on('connection', (socket) => {
-  console.log('We have a new connection')
+if (PORT == 3000) {
+  // Bootstrap
 
-  socket.emit('message', { message: 'hello!!!' })
+  let next = BOOTSTRAP
+  let previous = BOOTSTRAP
 
-  socket.on('disconnect', () => {
-    console.log('Disconnected')
+  io.on('connection', (socket) => {
+
+    // Call Bootstrap Join
+    socket.on('join', ({IP_PORT}) => {
+      if (next == BOOTSTRAP) {
+        previous = IP_PORT
+        next = IP_PORT
+        console.log('Join In Bootstrap:', { previous, next })
+        socket.emit('join_response', { previous: BOOTSTRAP, next: BOOTSTRAP })
+      }
+
+    })
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected')
+    })
+
   })
-})
+} else {
+  // Non Bootstrap
 
-//* Client Code
-if (PORT != 3000) {
-  let socket = client_io.connect('http://localhost:3000')
-  socket.on('message', () => {
-    console.log('Someone send a message to me')
+  let socket = client_io.connect('http://' + BOOTSTRAP)
+
+  socket.emit('join', { IP_PORT })
+
+  socket.on('join_response', ( {previous,next} ) => {
+      console.log('Join Response Object:', {previous,next})
   })
+
 }
 
 server.listen(PORT, () => {
