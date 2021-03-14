@@ -21,13 +21,16 @@ const MY_IP = ME.slice(0,separator)
 const MY_PORT = ME.slice(separator+1)
 const MY_HASH = sha1(ME)
 
+let previous = null
+let previous_hash = null
+let next = null
+let next_hash = null
+
 if (ME == BOOTSTRAP) {
   // Bootstrap
 
   previous = BOOTSTRAP
-  previous_hash = MY_HASH
   next = BOOTSTRAP
-  next_hash = MY_HASH
 
   io.on('connection', (socket) => {
     // On Connection
@@ -48,30 +51,27 @@ if (ME == BOOTSTRAP) {
         previous_hash = hash
         next = join_ip_port
         next_hash = hash
-        show_neighbours(previous, next)
+        show_neighbours()
 
       } else {
-        join_general_case(join_ip_port, previous_hash, next_hash, previous, next);
+        join_general_case(join_ip_port);
       }
     })
 
     socket.on('join_update_previous', ({ new_previous }) => {
       previous = new_previous
-      show_neighbours(previous, next)
+      previous_hash = sha1(previous)
+      show_neighbours()
     })
 
     socket.on('join_update_next', ({ new_next }) => {
       next = new_next
-      show_neighbours(previous, next)
+      next_hash = sha1(next)
+      show_neighbours()
     })
   })
 } else {
   // Non Bootstrap
-
-  previous = null
-  previous_hash = null
-  next = null
-  next_hash = null
 
   bootstrap_socket = client_io.connect('http://' + BOOTSTRAP)
 
@@ -85,7 +85,7 @@ if (ME == BOOTSTRAP) {
 
       previous = join_previous
       next = join_next
-      show_neighbours(previous, next)
+      show_neighbours()
       bootstrap_socket.close()
     })
 
@@ -93,17 +93,17 @@ if (ME == BOOTSTRAP) {
       // On Join Forward
 
       console.log('They sent me this guy:', join_ip_port)
-      join_general_case(join_ip_port, previous_hash, next_hash, previous, next);
+      join_general_case(join_ip_port);
     })
 
     socket.on('join_update_previous', ({ new_previous }) => {
-      previous = new_previous
-      show_neighbours(previous, next)
+      update_previous(new_previous)
+      show_neighbours()
     })
 
     socket.on('join_update_next', ({ new_next }) => {
-      next = new_next
-      show_neighbours(previous, next)
+      update_next(new_next)
+      show_neighbours()
     })
   })
 
@@ -122,7 +122,7 @@ server.listen(MY_PORT, () => {
     και ο κάθε κόμβος έχει πρόσβαση στο object, με array[MY_PORT].previous π.χ
 */
 
-function join_general_case(join_ip_port, previous_hash, next_hash, previous, next) {
+function join_general_case(join_ip_port) {
 
   let hash = sha1(join_ip_port)
 
@@ -132,17 +132,20 @@ function join_general_case(join_ip_port, previous_hash, next_hash, previous, nex
 
       socket = client_io.connect('http://' + previous)
       socket.emit('join_forward', { join_ip_port })
+      socket.close()
     } else {
       // Put him between me and previous
 
       socket = client_io.connect('http://' + join_ip_port)
       socket.emit('join_response', { join_previous: previous, join_next: ME })
+      socket.close()
 
       socket = client_io.connect('http://' + previous)
       socket.emit('join_update_next', { new_next: join_ip_port })
+      socket.close()
 
-      previous = join_ip_port
-      show_neighbours(previous, next)
+      update_previous(join_ip_port)
+      show_neighbours()
     }
   } else {
     if (hash > next_hash) {
@@ -155,17 +158,30 @@ function join_general_case(join_ip_port, previous_hash, next_hash, previous, nex
 
       socket = client_io.connect('http://' + join_ip_port)
       socket.emit('join_response', { join_previous: ME, join_next: next })
+      socket.close()
 
       socket = client_io.connect('http://' + next)
       socket.emit('join_update_previous', { new_previous: join_ip_port })
+      socket.close()
 
-      next = join_ip_port
-      show_neighbours(previous, next)
+      update_next(join_ip_port)
+      show_neighbours()
     }
   } 
 
 }
 
-function show_neighbours(previous, next) {
+function show_neighbours() {
   console.log('My Neighbours:', { previous, next })
 }
+
+function update_previous(new_previous) {
+  previous = new_previous
+  previous_hash = sha1(previous)
+}
+
+function update_next(new_next) {
+  next = new_next
+  next_hash = sha1(next)
+}
+
