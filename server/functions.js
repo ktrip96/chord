@@ -42,7 +42,7 @@ function join_general_case(join_ip_port, ME) {
       socket.emit('join_response', { join_previous: previous, join_next: ME })
 
       socket = client_io.connect('http://' + previous)
-      socket.emit('join_set_next', { new_next: join_ip_port })
+      socket.emit('join_update_next', { new_next: join_ip_port })
 
       set_previous(join_ip_port)
       show_neighbours()
@@ -60,7 +60,7 @@ function join_general_case(join_ip_port, ME) {
       socket.emit('join_response', { join_previous: ME, join_next: next })
 
       socket = client_io.connect('http://' + next)
-      socket.emit('join_set_previous', { new_previous: join_ip_port })
+      socket.emit('join_update_previous', { new_previous: join_ip_port })
 
       set_next(join_ip_port)
       show_neighbours()
@@ -83,13 +83,13 @@ function set_next(new_next) {
   next_hash = sha1(next)
 }
 
-function join_set(socket) {
-  socket.on('join_set_previous', ({ new_previous }) => {
+function join_update_neighbours(socket) {
+  socket.on('join_update_previous', ({ new_previous }) => {
     set_previous(new_previous)
     show_neighbours()
   })
 
-  socket.on('join_set_next', ({ new_next }) => {
+  socket.on('join_update_next', ({ new_next }) => {
     set_next(new_next)
     show_neighbours()
   })
@@ -101,6 +101,6 @@ module.exports = {
   get_previous,
   get_next,
   show_neighbours,
-  join_set,
+  join_update_neighbours,
   join_general_case
 }

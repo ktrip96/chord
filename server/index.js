@@ -6,7 +6,7 @@ const {
   get_previous,
   get_next,
   show_neighbours,
-  join_set,
+  join_update_neighbours,
   join_general_case
 } = require('./functions.js')
 
@@ -58,11 +58,13 @@ if (ME == BOOTSTRAP) {
         show_neighbours()
 
       } else {
+        // General case
+
         join_general_case(join_ip_port, ME);
       }
     })
 
-    join_set(socket)
+    join_update_neighbours(socket)
   })
 } else {
   // Non Bootstrap
@@ -89,7 +91,7 @@ if (ME == BOOTSTRAP) {
       join_general_case(join_ip_port, ME);
     })
 
-    join_set(socket)
+    join_update_neighbours(socket)
   })
 
 }
