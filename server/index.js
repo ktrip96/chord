@@ -20,6 +20,7 @@ const separator = ME.indexOf(':')
 const MY_IP = ME.slice(0,separator)
 const MY_PORT = ME.slice(separator+1)
 const MY_HASH = sha1(ME)
+console.log('My hash:', MY_HASH)
 
 let previous = null
 let previous_hash = null
@@ -44,7 +45,6 @@ if (ME == BOOTSTRAP) {
         // 1st joiner next/previous is BOOTSTRAP
         socket = client_io.connect('http://' + join_ip_port)
         socket.emit('join_response', { join_previous: BOOTSTRAP, join_next: BOOTSTRAP })
-        socket.close()
 
         // Bootstrap next/previous is 1st joiner
         hash = sha1(join_ip_port)
@@ -87,7 +87,6 @@ if (ME == BOOTSTRAP) {
       update_previous(join_previous)
       update_next(join_next)
       show_neighbours()
-      bootstrap_socket.close()
     })
 
     socket.on('join_forward', ({ join_ip_port }) => {
@@ -133,38 +132,32 @@ function join_general_case(join_ip_port) {
 
       socket = client_io.connect('http://' + previous)
       socket.emit('join_forward', { join_ip_port })
-      socket.close()
     } else {
       // Put him between me and previous
 
       socket = client_io.connect('http://' + join_ip_port)
       socket.emit('join_response', { join_previous: previous, join_next: ME })
-      socket.close()
 
       socket = client_io.connect('http://' + previous)
       socket.emit('join_update_next', { new_next: join_ip_port })
-      socket.close()
 
       update_previous(join_ip_port)
       show_neighbours()
     }
   } else {
-    if (hash > next_hash) {
+    if (hash > next_hash && MY_HASH < next_hash) {
       // Send him to next
 
       socket = client_io.connect('http://' + next)
       socket.emit('join_forward', { join_ip_port })
-      socket.close()
     } else {
       // Put him between me and next
 
       socket = client_io.connect('http://' + join_ip_port)
       socket.emit('join_response', { join_previous: ME, join_next: next })
-      socket.close()
 
       socket = client_io.connect('http://' + next)
       socket.emit('join_update_previous', { new_previous: join_ip_port })
-      socket.close()
 
       update_next(join_ip_port)
       show_neighbours()
