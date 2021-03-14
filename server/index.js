@@ -44,6 +44,7 @@ if (ME == BOOTSTRAP) {
         // 1st joiner next/previous is BOOTSTRAP
         socket = client_io.connect('http://' + join_ip_port)
         socket.emit('join_response', { join_previous: BOOTSTRAP, join_next: BOOTSTRAP })
+        socket.close()
 
         // Bootstrap next/previous is 1st joiner
         hash = sha1(join_ip_port)
@@ -83,8 +84,8 @@ if (ME == BOOTSTRAP) {
     socket.on('join_response', ({ join_previous, join_next }) => {
       // On Join Response
 
-      previous = join_previous
-      next = join_next
+      update_previous(join_previous)
+      update_next(join_next)
       show_neighbours()
       bootstrap_socket.close()
     })
@@ -153,6 +154,7 @@ function join_general_case(join_ip_port) {
 
       socket = client_io.connect('http://' + next)
       socket.emit('join_forward', { join_ip_port })
+      socket.close()
     } else {
       // Put him between me and next
 
@@ -184,4 +186,3 @@ function update_next(new_next) {
   next = new_next
   next_hash = sha1(next)
 }
-
