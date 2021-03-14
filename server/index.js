@@ -59,17 +59,7 @@ if (ME == BOOTSTRAP) {
       }
     })
 
-    socket.on('join_update_previous', ({ new_previous }) => {
-      previous = new_previous
-      previous_hash = sha1(previous)
-      show_neighbours()
-    })
-
-    socket.on('join_update_next', ({ new_next }) => {
-      next = new_next
-      next_hash = sha1(next)
-      show_neighbours()
-    })
+    join_update(socket)
   })
 } else {
   // Non Bootstrap
@@ -96,15 +86,7 @@ if (ME == BOOTSTRAP) {
       join_general_case(join_ip_port);
     })
 
-    socket.on('join_update_previous', ({ new_previous }) => {
-      update_previous(new_previous)
-      show_neighbours()
-    })
-
-    socket.on('join_update_next', ({ new_next }) => {
-      update_next(new_next)
-      show_neighbours()
-    })
+    join_update(socket)
   })
 
 }
@@ -112,15 +94,6 @@ if (ME == BOOTSTRAP) {
 server.listen(MY_PORT, () => {
   console.log(`Server has started on port:${MY_PORT}`)
 })
-
-//? Πρόβλημα:
-/*
-    Πρέπει με κάποιο τρόπο να κρατήσουμε δεδομένα για κάθε server. 
-    (π.χ. το previous, το next, τα Data κλπ.)
-    Όμως έχουμε μόνο ένα αρχείο για όλους τους servers.
-    - Κρατάμε ένα array που συνδέει PORTS με objects, κάνουμε import το array
-    και ο κάθε κόμβος έχει πρόσβαση στο object, με array[MY_PORT].previous π.χ
-*/
 
 function join_general_case(join_ip_port) {
 
@@ -178,4 +151,16 @@ function update_previous(new_previous) {
 function update_next(new_next) {
   next = new_next
   next_hash = sha1(next)
+}
+
+function join_update(socket) {
+  socket.on('join_update_previous', ({ new_previous }) => {
+    update_previous(new_previous)
+    show_neighbours()
+  })
+
+  socket.on('join_update_next', ({ new_next }) => {
+    update_next(new_next)
+    show_neighbours()
+  })
 }
