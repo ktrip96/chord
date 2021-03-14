@@ -13,21 +13,21 @@ const io = socketio(server, {
 })
 
 // Juice
-const IP_PORT = process.argv[2]
+const ME = process.argv[2]
 const BOOTSTRAP = 'localhost:3000'
 
-const separator = IP_PORT.indexOf(':')
-const IP = IP_PORT.slice(0,separator)
-const PORT = IP_PORT.slice(separator+1)
-const MY_HASH = sha1(IP_PORT)
+const separator = ME.indexOf(':')
+const MY_IP = ME.slice(0,separator)
+const MY_PORT = ME.slice(separator+1)
+const MY_HASH = sha1(ME)
 
-if (IP_PORT == BOOTSTRAP) {
+if (ME == BOOTSTRAP) {
   // Bootstrap
 
-  let previous = BOOTSTRAP
-  let previous_hash = MY_HASH
-  let next = BOOTSTRAP
-  let next_hash = MY_HASH
+  previous = BOOTSTRAP
+  previous_hash = MY_HASH
+  next = BOOTSTRAP
+  next_hash = MY_HASH
 
   io.on('connection', (socket) => {
     // On Connection
@@ -38,17 +38,17 @@ if (IP_PORT == BOOTSTRAP) {
       if (next == BOOTSTRAP) {
         // Special case: Only BOOTSTRAP in the network
 
-        // 1st joiner next/previous
+        // 1st joiner next/previous is BOOTSTRAP
         socket = client_io.connect('http://' + join_ip_port)
         socket.emit('join_response', { join_previous: BOOTSTRAP, join_next: BOOTSTRAP })
 
-        // Bootstrap next/previous
-        let hash = sha1(join_ip_port)
+        // Bootstrap next/previous is 1st joiner
+        hash = sha1(join_ip_port)
         previous = join_ip_port
         previous_hash = hash
         next = join_ip_port
         next_hash = hash
-        console.log('1st Join In Bootstrap:', { previous, next })
+        show_neighbours(previous, next)
 
       } else {
         join_general_case(join_ip_port, previous_hash, next_hash, previous, next);
@@ -57,25 +57,25 @@ if (IP_PORT == BOOTSTRAP) {
 
     socket.on('join_update_previous', ({ new_previous }) => {
       previous = new_previous
-      console.log('New Previous:' + previous)
+      show_neighbours(previous, next)
     })
 
     socket.on('join_update_next', ({ new_next }) => {
       next = new_next
-      console.log('New Next:' + next)
+      show_neighbours(previous, next)
     })
   })
 } else {
   // Non Bootstrap
 
-  let previous = null
-  let previous_hash = null
-  let next = null
-  let next_hash = null
+  previous = null
+  previous_hash = null
+  next = null
+  next_hash = null
 
-  let bootstrap_socket = client_io.connect('http://' + BOOTSTRAP)
+  bootstrap_socket = client_io.connect('http://' + BOOTSTRAP)
 
-  bootstrap_socket.emit('join', { join_ip_port:IP_PORT })
+  bootstrap_socket.emit('join', { join_ip_port:ME })
 
   io.on('connection', (socket) => {
     // On Connection
@@ -83,9 +83,9 @@ if (IP_PORT == BOOTSTRAP) {
     socket.on('join_response', ({ join_previous, join_next }) => {
       // On Join Response
 
-      console.log('Join Response:', { join_previous, join_next })
       previous = join_previous
       next = join_next
+      show_neighbours(previous, next)
       bootstrap_socket.close()
     })
 
@@ -98,19 +98,19 @@ if (IP_PORT == BOOTSTRAP) {
 
     socket.on('join_update_previous', ({ new_previous }) => {
       previous = new_previous
-      console.log('New Previous:' + previous)
+      show_neighbours(previous, next)
     })
 
     socket.on('join_update_next', ({ new_next }) => {
       next = new_next
-      console.log('New Next:' + next)
+      show_neighbours(previous, next)
     })
   })
 
 }
 
-server.listen(PORT, () => {
-  console.log(`Server has started on port:${PORT}`)
+server.listen(MY_PORT, () => {
+  console.log(`Server has started on port:${MY_PORT}`)
 })
 
 //? Πρόβλημα:
@@ -119,16 +119,16 @@ server.listen(PORT, () => {
     (π.χ. το previous, το next, τα Data κλπ.)
     Όμως έχουμε μόνο ένα αρχείο για όλους τους servers.
     - Κρατάμε ένα array που συνδέει PORTS με objects, κάνουμε import το array
-    και ο κάθε κόμβος έχει πρόσβαση στο object, με array[PORT].previous π.χ
+    και ο κάθε κόμβος έχει πρόσβαση στο object, με array[MY_PORT].previous π.χ
 */
 
 function join_general_case(join_ip_port, previous_hash, next_hash, previous, next) {
 
   let hash = sha1(join_ip_port)
 
-    if (hash < MY_HASH) {
-      if (hash < previous_hash) {
-        // Send him to previous
+  if (hash < MY_HASH) {
+    if (hash < previous_hash) {
+      // Send him to previous
 
       socket = client_io.connect('http://' + previous)
       socket.emit('join_forward', { join_ip_port })
@@ -136,13 +136,13 @@ function join_general_case(join_ip_port, previous_hash, next_hash, previous, nex
       // Put him between me and previous
 
       socket = client_io.connect('http://' + join_ip_port)
-      socket.emit('join_response', { join_previous: previous, join_next: IP_PORT })
+      socket.emit('join_response', { join_previous: previous, join_next: ME })
 
       socket = client_io.connect('http://' + previous)
       socket.emit('join_update_next', { new_next: join_ip_port })
 
       previous = join_ip_port
-      console.log('New previous:' + previous)
+      show_neighbours(previous, next)
     }
   } else {
     if (hash > next_hash) {
@@ -154,14 +154,18 @@ function join_general_case(join_ip_port, previous_hash, next_hash, previous, nex
       // Put him between me and next
 
       socket = client_io.connect('http://' + join_ip_port)
-      socket.emit('join_response', { join_previous: IP_PORT, join_next: next })
+      socket.emit('join_response', { join_previous: ME, join_next: next })
 
       socket = client_io.connect('http://' + next)
       socket.emit('join_update_previous', { new_previous: join_ip_port })
 
       next = join_ip_port
-      console.log('New next:' + next)
+      show_neighbours(previous, next)
     }
   } 
 
+}
+
+function show_neighbours(previous, next) {
+  console.log('My Neighbours:', { previous, next })
 }
