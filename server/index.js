@@ -7,7 +7,8 @@ const {
   get_next,
   show_neighbours,
   join_update_neighbours,
-  join_general_case
+  join_general_case,
+  depart
 } = require('./functions.js')
 
 const express = require('express')
@@ -28,8 +29,8 @@ const ME = process.argv[2]
 const BOOTSTRAP = 'localhost:3000'
 
 const separator = ME.indexOf(':')
-const MY_IP = ME.slice(0,separator)
-const MY_PORT = ME.slice(separator+1)
+const MY_IP = ME.slice(0, separator)
+const MY_PORT = ME.slice(separator + 1)
 const MY_HASH = sha1(ME)
 console.log('My hash:', MY_HASH)
 
@@ -42,17 +43,17 @@ if (ME == BOOTSTRAP) {
   io.on('connection', (socket) => {
     // On Connection
 
-    socket.on('join', ({joiner}) => {
+    socket.on('join', ({ joiner }) => {
       // On Join
 
       if (get_next() == BOOTSTRAP) {
-        // Special case: Only BOOTSTRAP in the network
+        // Special case: Only bootstrap in the network
 
-        // Joiner next/previous is BOOTSTRAP
+        // Joiner next/previous is bootstrap
         socket = client_io.connect('http://' + joiner)
         socket.emit('join_response', { joiner_previous: BOOTSTRAP, joiner_next: BOOTSTRAP })
 
-        // BOOTSTRAP next/previous is joiner
+        // Bootstrap next/previous is joiner
         set_previous(joiner)
         set_next(joiner)
         show_neighbours()
@@ -68,14 +69,13 @@ if (ME == BOOTSTRAP) {
 
   })
 } else {
-  // Non Bootstrap
+  // Non bootstrap
 
-  // Join
+  // Join request to bootstrap
   bootstrap_socket = client_io.connect('http://' + BOOTSTRAP)
   bootstrap_socket.emit('join', { joiner:ME })
 
   io.on('connection', (socket) => {
-    // On Connection
 
     socket.on('join_response', ({ joiner_previous, joiner_next }) => {
       // On Join Response
@@ -92,13 +92,14 @@ if (ME == BOOTSTRAP) {
       join_general_case(joiner, ME);
     })
 
-    join_update_neighbours(socket)
-
     socket.on('depart', () => {
       // On Depart
+      console.log('depart')
 
-      depart();
+      depart()
     })
+
+    join_update_neighbours(socket)
 
   })
 

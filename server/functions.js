@@ -6,14 +6,8 @@ let previous_hash = null
 let next = null
 let next_hash = null
 
-function set_previous(new_previous) {
-  previous = new_previous
-  previous_hash = sha1(previous)
-}
-function set_next(new_next) {
-  next = new_next
-  next_hash = sha1(next)
-}
+function set_previous(new_previous) { previous = new_previous; previous_hash = sha1(previous) }
+function set_next(new_next) { next = new_next; next_hash = sha1(next) }
 
 function get_previous() { return previous; }
 function get_next() { return next; }
@@ -32,17 +26,17 @@ function send_neighbours(joiner, joiner_previous, joiner_next) {
 
 function send_neighbour_update(receiving_neighbour, new_neighbor, side) {
   socket = client_io.connect('http://' + receiving_neighbour)
-  socket.emit('join_update', { new_neighbor, side })
+  socket.emit('update', { new_neighbor, side })
 }
 
 function join_update_neighbours(socket) {
-  socket.on('join_update', ({ new_neighbor, side }) => {
+  socket.on('update', ({ new_neighbor, side }) => {
 
-    if ( side == "previous" ) {
+    if (side == "previous") {
       set_previous(new_neighbor)
       show_neighbours()
-    } else if ( side == "previous" ) {
-      set_next(new_next)
+    } else if (side == "next") {
+      set_next(new_neighbor)
       show_neighbours()
     } else {
       console.log('What is this madness? (' + side + ')')
@@ -92,6 +86,17 @@ function join_general_case(joiner, ME) {
   } 
 }
 
+async function depart() {
+  let promise = new Promise((resolve, reject) => {
+    send_neighbour_update(next, previous, "previous")
+    send_neighbour_update(previous, next, "next")
+  });
+
+  let _ = await promise;
+
+  process.exit()
+} 
+
 module.exports = {
   set_previous,
   set_next,
@@ -99,5 +104,6 @@ module.exports = {
   get_next,
   show_neighbours,
   join_update_neighbours,
-  join_general_case
+  join_general_case,
+  depart
 }
