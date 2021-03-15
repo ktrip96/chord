@@ -67,7 +67,6 @@ function between_me_and_that_guy(joiner, that_guy, ME, side) {
     { set_next(joiner); joiner_previous = ME; joiner_next = that_guy }
   else 
     console.log("OH NO you SHOULDN'T have seen that!")
-
   send_neighbours(joiner, joiner_previous, joiner_next)
 
   send_neighbour_update(that_guy, joiner, oposite_of(side))
@@ -82,6 +81,29 @@ function between_me_and_previous(joiner, ME) {
 
 function between_me_and_next(joiner, ME) {
   between_me_and_that_guy(joiner, next, ME, "next")
+}
+
+function chord_parser(to_be_hashed,ME,f_list,arg_list) {
+
+  let hash = sha1(to_be_hashed)
+  let MY_HASH = sha1(ME)
+
+  if (hash < MY_HASH) {
+
+    if (hash < previous_hash && MY_HASH > previous_hash)
+      f_list[0](arg_list[0])
+    else
+      f_list[1](arg_list[1])
+
+  } else {
+
+    if (hash > next_hash && MY_HASH < next_hash)
+      f_list[2](arg_list[2])
+    else
+      f_list[3](arg_list[3])
+
+  } 
+
 }
 
 function join_general_case(joiner, ME) {
