@@ -7,7 +7,8 @@ const {
   get_next,
   show_neighbours,
   join_update_neighbours,
-  join_general_case
+  join_general_case,
+  depart
 } = require('./functions.js')
 
 const express = require('express')
@@ -28,8 +29,8 @@ const ME = process.argv[2]
 const BOOTSTRAP = 'localhost:3000'
 
 const separator = ME.indexOf(':')
-const MY_IP = ME.slice(0,separator)
-const MY_PORT = ME.slice(separator+1)
+const MY_IP = ME.slice(0, separator)
+const MY_PORT = ME.slice(separator + 1)
 const MY_HASH = sha1(ME)
 console.log('My hash:', MY_HASH)
 
@@ -42,56 +43,64 @@ if (ME == BOOTSTRAP) {
   io.on('connection', (socket) => {
     // On Connection
 
-    socket.on('join', ({join_ip_port}) => {
+    socket.on('join', ({ joiner }) => {
       // On Join
 
       if (get_next() == BOOTSTRAP) {
-        // Special case: Only BOOTSTRAP in the network
+        // Special case: Only bootstrap in the network
 
-        // 1st joiner next/previous is BOOTSTRAP
-        socket = client_io.connect('http://' + join_ip_port)
-        socket.emit('join_response', { join_previous: BOOTSTRAP, join_next: BOOTSTRAP })
+        // Joiner next/previous is bootstrap
+        socket = client_io.connect('http://' + joiner)
+        socket.emit('join_response', { joiner_previous: BOOTSTRAP, joiner_next: BOOTSTRAP })
 
-        // Bootstrap next/previous is 1st joiner
-        set_previous(join_ip_port)
-        set_next(join_ip_port)
+        // Bootstrap next/previous is joiner
+        set_previous(joiner)
+        set_next(joiner)
         show_neighbours()
 
       } else {
         // General case
 
-        join_general_case(join_ip_port, ME);
+        join_general_case(joiner, ME);
       }
     })
 
     join_update_neighbours(socket)
+
   })
 } else {
-  // Non Bootstrap
+  // Non bootstrap
 
-  // Join
+  // Join request to bootstrap
   bootstrap_socket = client_io.connect('http://' + BOOTSTRAP)
-  bootstrap_socket.emit('join', { join_ip_port:ME })
+  bootstrap_socket.emit('join', { joiner:ME })
 
   io.on('connection', (socket) => {
-    // On Connection
 
-    socket.on('join_response', ({ join_previous, join_next }) => {
+    socket.on('join_response', ({ joiner_previous, joiner_next }) => {
       // On Join Response
 
-      set_previous(join_previous)
-      set_next(join_next)
+      set_previous(joiner_previous)
+      set_next(joiner_next)
       show_neighbours()
     })
 
-    socket.on('join_forward', ({ join_ip_port }) => {
+    socket.on('join_forward', ({ joiner }) => {
       // On Join Forward
 
-      console.log('They sent me this guy:', join_ip_port)
-      join_general_case(join_ip_port, ME);
+      console.log('They sent me this guy:', joiner)
+      join_general_case(joiner, ME);
+    })
+
+    socket.on('depart', () => {
+      // On Depart
+      console.log('depart')
+
+      depart()
     })
 
     join_update_neighbours(socket)
+
   })
 
 }

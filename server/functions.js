@@ -6,94 +6,96 @@ let previous_hash = null
 let next = null
 let next_hash = null
 
-function set_previous(new_previous) {
-  previous = new_previous
-  previous_hash = sha1(previous)
+function set_previous(new_previous) { previous = new_previous; previous_hash = sha1(previous) }
+function set_next(new_next) { next = new_next; next_hash = sha1(next) }
+
+function get_previous() { return previous; }
+function get_next() { return next; }
+
+function show_neighbours() { console.log('My Neighbours:', { previous, next }) }
+
+function join_forward(neighbour, joiner) {
+  socket = client_io.connect('http://' + neighbour)
+  socket.emit('join_forward', { joiner })
 }
 
-function set_next(new_next) {
-  next = new_next
-  next_hash = sha1(next)
+function send_neighbours(joiner, joiner_previous, joiner_next) {
+  socket = client_io.connect('http://' + joiner)
+  socket.emit('join_response', { joiner_previous, joiner_next })
 }
 
-function get_previous() {
-  return previous;
-}
-
-function get_next() {
-  return next;
-}
-
-function join_general_case(join_ip_port, ME) {
-
-  let hash = sha1(join_ip_port)
-  let MY_HASH = sha1(ME)
-
-  if (hash < MY_HASH) {
-    if (hash < previous_hash) {
-      // Send him to previous
-
-      socket = client_io.connect('http://' + previous)
-      socket.emit('join_forward', { join_ip_port })
-    } else {
-      // Put him between me and previous
-
-      socket = client_io.connect('http://' + join_ip_port)
-      socket.emit('join_response', { join_previous: previous, join_next: ME })
-
-      socket = client_io.connect('http://' + previous)
-      socket.emit('join_update_next', { new_next: join_ip_port })
-
-      set_previous(join_ip_port)
-      show_neighbours()
-    }
-  } else {
-    if (hash > next_hash && MY_HASH < next_hash) {
-      // Send him to next
-
-      socket = client_io.connect('http://' + next)
-      socket.emit('join_forward', { join_ip_port })
-    } else {
-      // Put him between me and next
-
-      socket = client_io.connect('http://' + join_ip_port)
-      socket.emit('join_response', { join_previous: ME, join_next: next })
-
-      socket = client_io.connect('http://' + next)
-      socket.emit('join_update_previous', { new_previous: join_ip_port })
-
-      set_next(join_ip_port)
-      show_neighbours()
-    }
-  } 
-
-}
-
-function show_neighbours() {
-  console.log('My Neighbours:', { previous, next })
-}
-
-function set_previous(new_previous) {
-  previous = new_previous
-  previous_hash = sha1(previous)
-}
-
-function set_next(new_next) {
-  next = new_next
-  next_hash = sha1(next)
+function send_neighbour_update(receiving_neighbour, new_neighbor, side) {
+  socket = client_io.connect('http://' + receiving_neighbour)
+  socket.emit('update', { new_neighbor, side })
 }
 
 function join_update_neighbours(socket) {
-  socket.on('join_update_previous', ({ new_previous }) => {
-    set_previous(new_previous)
-    show_neighbours()
+  socket.on('update', ({ new_neighbor, side }) => {
+
+    if (side == "previous") {
+      set_previous(new_neighbor)
+      show_neighbours()
+    } else if (side == "next") {
+      set_next(new_neighbor)
+      show_neighbours()
+    } else {
+      console.log('What is this madness? (' + side + ')')
+    }
+
   })
 
-  socket.on('join_update_next', ({ new_next }) => {
-    set_next(new_next)
-    show_neighbours()
-  })
 }
+
+function join_general_case(joiner, ME) {
+
+  let hash = sha1(joiner)
+  let MY_HASH = sha1(ME)
+
+  if (hash < MY_HASH) {
+
+    if (hash < previous_hash) {
+      // Send him to previous
+
+      join_forward(previous, joiner)
+    } else {
+      // Put him between me and previous
+
+      send_neighbours(joiner, previous, ME)
+      send_neighbour_update(previous, joiner, "next")
+      set_previous(joiner)
+
+      show_neighbours()
+    }
+
+  } else {
+
+    if (hash > next_hash && MY_HASH < next_hash) {
+      // Send him to next
+
+      join_forward(next, joiner)
+
+    } else {
+      // Put him between me and next
+
+      send_neighbours(joiner, ME, next)
+      send_neighbour_update(next, joiner, "previous")
+      set_next(joiner)
+
+      show_neighbours()
+    }
+  } 
+}
+
+async function depart() {
+  let promise = new Promise((resolve, reject) => {
+    send_neighbour_update(next, previous, "previous")
+    send_neighbour_update(previous, next, "next")
+  });
+
+  let _ = await promise;
+
+  process.exit()
+} 
 
 module.exports = {
   set_previous,
@@ -102,5 +104,6 @@ module.exports = {
   get_next,
   show_neighbours,
   join_update_neighbours,
-  join_general_case
+  join_general_case,
+  depart
 }
