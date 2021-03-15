@@ -76,11 +76,11 @@ function between_me_and_that_guy(joiner, that_guy, ME, side) {
 
 }
 
-function between_me_and_previous(joiner, previous, ME) {
+function between_me_and_previous(joiner, ME) {
   between_me_and_that_guy(joiner, previous, ME, "previous")
 }
 
-function between_me_and_next(joiner, ME, next) {
+function between_me_and_next(joiner, ME) {
   between_me_and_that_guy(joiner, next, ME, "next")
 }
 
@@ -94,14 +94,14 @@ function join_general_case(joiner, ME) {
     if (hash < previous_hash && MY_HASH > previous_hash)
       join_forward(previous, joiner)
     else
-      between_me_and_previous(joiner, previous, ME)
+      between_me_and_previous(joiner, ME)
 
   } else {
 
     if (hash > next_hash && MY_HASH < next_hash)
       join_forward(next, joiner)
     else
-      between_me_and_next(joiner, ME, next)
+      between_me_and_next(joiner, ME)
 
   } 
 
