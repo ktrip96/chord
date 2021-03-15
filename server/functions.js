@@ -12,7 +12,7 @@ function set_next(new_next) { next = new_next; next_hash = sha1(next) }
 function get_previous() { return previous; }
 function get_next() { return next; }
 
-function show_neighbours() { console.log('My Neighbours:', { previous, next }) }
+function show_neighbours() { console.log('Neighbours: ' +  previous + ', ' + next ) }
 
 function join_forward(neighbour, joiner) {
   socket = client_io.connect('http://' + neighbour)
@@ -32,18 +32,56 @@ function send_neighbour_update(receiving_neighbour, new_neighbor, side) {
 function join_update_neighbours(socket) {
   socket.on('update', ({ new_neighbor, side }) => {
 
-    if (side == "previous") {
+    if (side == "previous")
       set_previous(new_neighbor)
-      show_neighbours()
-    } else if (side == "next") {
+    else if (side == "next")
       set_next(new_neighbor)
-      show_neighbours()
-    } else {
+    else 
       console.log('What is this madness? (' + side + ')')
-    }
+
+    show_neighbours()
 
   })
 
+}
+
+function oposite_of(side) {
+
+  if (side == "previous")
+    return "next";
+  if (side == "next")
+    return "previous";
+
+  console.log("FUCK! I don't know this side:", side)
+  process.exit()
+
+}
+
+function between_me_and_that_guy(joiner, that_guy, ME, side) {
+
+  let joiner_previous
+  let joiner_next
+  if (side == "previous")
+    { set_previous(joiner); joiner_previous = that_guy; joiner_next = ME }
+  else if (side == "next")
+    { set_next(joiner); joiner_previous = ME; joiner_next = that_guy }
+  else 
+    console.log("OH NO you SHOULDN'T have seen that!")
+
+  send_neighbours(joiner, joiner_previous, joiner_next)
+
+  send_neighbour_update(that_guy, joiner, oposite_of(side))
+
+  show_neighbours()
+
+}
+
+function between_me_and_previous(joiner, previous, ME) {
+  between_me_and_that_guy(joiner, previous, ME, "previous")
+}
+
+function between_me_and_next(joiner, ME, next) {
+  between_me_and_that_guy(joiner, next, ME, "next")
 }
 
 function join_general_case(joiner, ME) {
@@ -53,48 +91,26 @@ function join_general_case(joiner, ME) {
 
   if (hash < MY_HASH) {
 
-    if (hash < previous_hash) {
-      // Send him to previous
-
+    if (hash < previous_hash && MY_HASH > previous_hash)
       join_forward(previous, joiner)
-    } else {
-      // Put him between me and previous
-
-      send_neighbours(joiner, previous, ME)
-      send_neighbour_update(previous, joiner, "next")
-      set_previous(joiner)
-
-      show_neighbours()
-    }
+    else
+      between_me_and_previous(joiner, previous, ME)
 
   } else {
 
-    if (hash > next_hash && MY_HASH < next_hash) {
-      // Send him to next
-
+    if (hash > next_hash && MY_HASH < next_hash)
       join_forward(next, joiner)
+    else
+      between_me_and_next(joiner, ME, next)
 
-    } else {
-      // Put him between me and next
-
-      send_neighbours(joiner, ME, next)
-      send_neighbour_update(next, joiner, "previous")
-      set_next(joiner)
-
-      show_neighbours()
-    }
   } 
+
 }
 
 async function depart() {
-  let promise = new Promise((resolve, reject) => {
-    send_neighbour_update(next, previous, "previous")
-    send_neighbour_update(previous, next, "next")
-  });
-
-  let _ = await promise;
-
-  process.exit()
+  send_neighbour_update(next, previous, "previous")
+  send_neighbour_update(previous, next, "next")
+  setTimeout(() => process.exit(),1000)
 } 
 
 module.exports = {
