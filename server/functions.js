@@ -14,7 +14,7 @@ function get_next() { return next; }
 
 function show_neighbours() { console.log('Neighbours: ' +  previous + ', ' + next ) }
 
-function join_forward(neighbour, joiner) {
+function join_forward({ neighbour, joiner }) {
   socket = client_io.connect('http://' + neighbour)
   socket.emit('join_forward', { joiner })
 }
@@ -114,14 +114,14 @@ function join_general_case(joiner, ME) {
   if (hash < MY_HASH) {
 
     if (hash < previous_hash && MY_HASH > previous_hash)
-      join_forward(previous, joiner)
+      join_forward({ previous, joiner })
     else
       between_me_and_previous(joiner, ME)
 
   } else {
 
     if (hash > next_hash && MY_HASH < next_hash)
-      join_forward(next, joiner)
+      join_forward({ next, joiner })
     else
       between_me_and_next(joiner, ME)
 
