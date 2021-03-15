@@ -14,8 +14,8 @@ function get_next() { return next; }
 
 function show_neighbours() { console.log('Neighbours: ' +  previous + ', ' + next ) }
 
-function join_forward({ neighbour, joiner }) {
-  socket = client_io.connect('http://' + neighbour)
+function join_forward({ forward_neighbour, joiner }) {
+  socket = client_io.connect('http://' + forward_neighbour)
   socket.emit('join_forward', { joiner })
 }
 
@@ -29,7 +29,7 @@ function send_neighbour_update(receiving_neighbour, new_neighbor, side) {
   socket.emit('update', { new_neighbor, side })
 }
 
-function join_update_neighbours(socket) {
+function on_join_update_neighbours(socket) {
   socket.on('update', ({ new_neighbor, side }) => {
 
     if (side == "previous")
@@ -75,15 +75,15 @@ function between_me_and_that_guy(joiner, that_guy, ME, side) {
 
 }
 
-function between_me_and_previous(joiner, ME) {
+function between_me_and_previous({ joiner, ME }) {
   between_me_and_that_guy(joiner, previous, ME, "previous")
 }
 
-function between_me_and_next(joiner, ME) {
+function between_me_and_next({ joiner, ME }) {
   between_me_and_that_guy(joiner, next, ME, "next")
 }
 
-function chord_parser(to_be_hashed,ME,f_list,arg_list) {
+function chord_parser(to_be_hashed, ME, f_list, arg_list) {
 
   let hash = sha1(to_be_hashed)
   let MY_HASH = sha1(ME)
@@ -106,30 +106,47 @@ function chord_parser(to_be_hashed,ME,f_list,arg_list) {
 
 }
 
-function join_general_case(joiner, ME) {
+function on_join_general_case(joiner, ME) {
 
-  let hash = sha1(joiner)
-  let MY_HASH = sha1(ME)
+  f_list = [
+    join_forward,
+    between_me_and_previous,
+    join_forward,
+    between_me_and_next
+  ]
 
-  if (hash < MY_HASH) {
+  arg_list = [
+    { forward_neighbour: previous, joiner },
+    { joiner, ME },
+    { forward_neighbour: next, joiner },
+    { joiner, ME }
+  ]
 
-    if (hash < previous_hash && MY_HASH > previous_hash)
-      join_forward({ previous, joiner })
-    else
-      between_me_and_previous(joiner, ME)
-
-  } else {
-
-    if (hash > next_hash && MY_HASH < next_hash)
-      join_forward({ next, joiner })
-    else
-      between_me_and_next(joiner, ME)
-
-  } 
+  chord_parser(joiner, ME, f_list, arg_list)
 
 }
 
-async function depart() {
+function on_insert(key, ME) {
+
+  f_list = [
+    join_forward,
+    between_me_and_previous,
+    join_forward,
+    between_me_and_next
+  ]
+
+  arg_list = [
+    { forward_neighbour: previous, joiner },
+    { joiner, ME },
+    { forward_neighbour: next, joiner },
+    { joiner, ME }
+  ]
+
+  chord_parser(joiner, ME, f_list, arg_list)
+
+}
+
+function depart() {
   send_neighbour_update(next, previous, "previous")
   send_neighbour_update(previous, next, "next")
   setTimeout(() => process.exit(),1000)
@@ -141,7 +158,7 @@ module.exports = {
   get_previous,
   get_next,
   show_neighbours,
-  join_update_neighbours,
-  join_general_case,
+  on_join_update_neighbours,
+  on_join_general_case,
   depart
 }

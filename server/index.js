@@ -6,8 +6,8 @@ const {
   get_previous,
   get_next,
   show_neighbours,
-  join_update_neighbours,
-  join_general_case,
+  on_join_update_neighbours,
+  on_join_general_case,
   depart
 } = require('./functions.js')
 
@@ -61,11 +61,11 @@ if (ME == BOOTSTRAP) {
       } else {
         // General case
 
-        join_general_case(joiner, ME);
+        on_join_general_case(joiner, ME);
       }
     })
 
-    join_update_neighbours(socket)
+    on_join_update_neighbours(socket)
 
   })
 } else {
@@ -89,7 +89,7 @@ if (ME == BOOTSTRAP) {
       // On Join Forward
 
       console.log('They sent me this guy:', joiner)
-      join_general_case(joiner, ME);
+      on_join_general_case(joiner, ME);
     })
 
     socket.on('depart', () => {
@@ -99,7 +99,7 @@ if (ME == BOOTSTRAP) {
       depart()
     })
 
-    join_update_neighbours(socket)
+    on_join_update_neighbours(socket)
 
   })
 
