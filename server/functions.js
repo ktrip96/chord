@@ -116,6 +116,7 @@ function on_join_general_case(joiner, ME) {
 // insert
 function on_insert(socket, ME) {
   socket.on('insert', ({ key, value }) => {
+
     f_list = [
       emit_to_node,
       insert_key_value,

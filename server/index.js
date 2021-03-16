@@ -95,6 +95,7 @@ if (ME == BOOTSTRAP) {
 
       set_previous(joiner_previous)
       set_next(joiner_next)
+
       show_neighbours()
     })
 
@@ -105,10 +106,6 @@ if (ME == BOOTSTRAP) {
       on_join_general_case(joiner, ME)
     })
 
-    on_insert(socket, ME)
-
-    on_insert_key_value(socket)
-
     socket.on('depart', () => {
       // On Depart
       console.log('depart')
@@ -116,7 +113,13 @@ if (ME == BOOTSTRAP) {
       depart()
     })
 
+    on_insert(socket, ME)
+
+    on_insert_key_value(socket)
+
     on_update_neighbour(socket)
+
+    // on_insert_forward(socket)
 
   })
 
