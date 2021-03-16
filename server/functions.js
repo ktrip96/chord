@@ -1,43 +1,48 @@
+// required
 const sha1 = require('sha1')
 const client_io = require('socket.io-client')
 
+// vars
 let previous = null
 let previous_hash = null
 let next = null
 let next_hash = null
 
-function set_previous(new_previous) { previous = new_previous; previous_hash = sha1(previous) }
-function set_next(new_next) { next = new_next; next_hash = sha1(next) }
+// set
+function set_previous(new_previous) {
+  previous = new_previous
+  previous_hash = sha1(previous)
+}
+function set_next(new_next) {
+  next = new_next
+  next_hash = sha1(next)
+}
 
+// get
 function get_previous() { return previous; }
 function get_next() { return next; }
 
-function show_neighbours() { console.log('Neighbours: ' +  previous + ', ' + next ) }
-
-function join_forward({ forward_neighbour, joiner }) {
-  socket = client_io.connect('http://' + forward_neighbour)
-  socket.emit('join_forward', { joiner })
+// show
+function show_neighbours() {
+  console.log('Neighbours: ' +  previous + ', ' + next )
 }
 
-function send_neighbours(joiner, joiner_previous, joiner_next) {
-  socket = client_io.connect('http://' + joiner)
-  socket.emit('join_response', { joiner_previous, joiner_next })
+// emit
+function emit_to_node({ node, event_, to_emit }) {
+  socket = client_io.connect('http://' + node)
+  socket.emit(event_, to_emit)
 }
 
-function send_neighbour_update(receiving_neighbour, new_neighbor, side) {
-  socket = client_io.connect('http://' + receiving_neighbour)
-  socket.emit('update', { new_neighbor, side })
-}
+// join
+function on_update_neighbour(socket) {
+  socket.on('update_neighbour', ({ new_neighbour, new_neighbour_side }) => {
 
-function on_join_update_neighbours(socket) {
-  socket.on('update', ({ new_neighbor, side }) => {
-
-    if (side == "previous")
-      set_previous(new_neighbor)
-    else if (side == "next")
-      set_next(new_neighbor)
+    if (new_neighbour_side == "previous")
+      set_previous(new_neighbour)
+    else if (new_neighbour_side == "next")
+      set_next(new_neighbour)
     else 
-      console.log('What is this madness? (' + side + ')')
+      console.log('What is this madness? (' + new_neighbour_side + ')')
 
     show_neighbours()
 
@@ -53,36 +58,82 @@ function oposite_of(side) {
     return "previous";
 
   console.log("FUCK! I don't know this side:", side)
-  process.exit()
 
 }
 
-function between_me_and_that_guy(joiner, that_guy, ME, side) {
+function between_me_and_that_guy({ joiner, that_guy, ME, side }) {
 
   let joiner_previous
   let joiner_next
-  if (side == "previous")
-    { set_previous(joiner); joiner_previous = that_guy; joiner_next = ME }
-  else if (side == "next")
-    { set_next(joiner); joiner_previous = ME; joiner_next = that_guy }
-  else 
+  if (side == "previous") {
+    set_previous(joiner)
+    joiner_previous = that_guy
+    joiner_next = ME
+  } else if (side == "next") {
+    set_next(joiner)
+    joiner_previous = ME
+    joiner_next = that_guy
+  } else 
     console.log("OH NO you SHOULDN'T have seen that!")
-  send_neighbours(joiner, joiner_previous, joiner_next)
 
-  send_neighbour_update(that_guy, joiner, oposite_of(side))
+  emit_to_node({
+    node: joiner,
+    event_: 'join_response',
+    to_emit: { joiner_previous, joiner_next }
+  })
+
+  emit_to_node({
+    node: that_guy,
+    event_: 'update_neighbour',
+    to_emit: { new_neighbour: joiner, new_neighbour_side: oposite_of(side) }
+  })
 
   show_neighbours()
 
 }
 
-function between_me_and_previous({ joiner, ME }) {
-  between_me_and_that_guy(joiner, previous, ME, "previous")
+function on_join_general_case(joiner, ME) {
+
+  f_list = [
+    emit_to_node,
+    between_me_and_that_guy,
+    emit_to_node,
+    between_me_and_that_guy
+  ]
+
+  arg_list = [
+    { node: previous, event_: 'join_forward', to_emit: { joiner } },
+    { joiner, that_guy: previous, ME, side: "previous" },
+    { node: next, event_: 'join_forward', to_emit: { joiner } },
+    { joiner, that_guy: next, ME, side: "next" }
+  ]
+
+  chord_parser(joiner, ME, f_list, arg_list)
+
 }
 
-function between_me_and_next({ joiner, ME }) {
-  between_me_and_that_guy(joiner, next, ME, "next")
+// insert
+function on_insert(key, ME) {
+
+  f_list = [
+    join_forward,
+    between_me_and_previous,
+    join_forward,
+    between_me_and_next
+  ]
+
+  arg_list = [
+    { forward_neighbour: previous, joiner },
+    { joiner, ME },
+    { forward_neighbour: next, joiner },
+    { joiner, ME }
+  ]
+
+  chord_parser(joiner, ME, f_list, arg_list)
+
 }
 
+// chord parser
 function chord_parser(to_be_hashed, ME, f_list, arg_list) {
 
   let hash = sha1(to_be_hashed)
@@ -106,49 +157,18 @@ function chord_parser(to_be_hashed, ME, f_list, arg_list) {
 
 }
 
-function on_join_general_case(joiner, ME) {
-
-  f_list = [
-    join_forward,
-    between_me_and_previous,
-    join_forward,
-    between_me_and_next
-  ]
-
-  arg_list = [
-    { forward_neighbour: previous, joiner },
-    { joiner, ME },
-    { forward_neighbour: next, joiner },
-    { joiner, ME }
-  ]
-
-  chord_parser(joiner, ME, f_list, arg_list)
-
-}
-
-function on_insert(key, ME) {
-
-  f_list = [
-    join_forward,
-    between_me_and_previous,
-    join_forward,
-    between_me_and_next
-  ]
-
-  arg_list = [
-    { forward_neighbour: previous, joiner },
-    { joiner, ME },
-    { forward_neighbour: next, joiner },
-    { joiner, ME }
-  ]
-
-  chord_parser(joiner, ME, f_list, arg_list)
-
-}
-
+// depart
 function depart() {
-  send_neighbour_update(next, previous, "previous")
-  send_neighbour_update(previous, next, "next")
+  emit_to_node({
+    node: next,
+    event_: 'update_neighbour',
+    to_emit: { new_neighbour: previous, new_neighbour_side: "previous" }
+  })
+  emit_to_node({
+    node: previous,
+    event_: 'update_neighbour',
+    to_emit: { new_neighbour: next, new_neighbour_side: "next" }
+  })
   setTimeout(() => process.exit(),1000)
 } 
 
@@ -158,7 +178,8 @@ module.exports = {
   get_previous,
   get_next,
   show_neighbours,
-  on_join_update_neighbours,
+  emit_to_node,
+  on_update_neighbour,
   on_join_general_case,
   depart
 }

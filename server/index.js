@@ -6,7 +6,8 @@ const {
   get_previous,
   get_next,
   show_neighbours,
-  on_join_update_neighbours,
+  emit_to_node,
+  on_update_neighbour,
   on_join_general_case,
   depart
 } = require('./functions.js')
@@ -50,8 +51,11 @@ if (ME == BOOTSTRAP) {
         // Special case: Only bootstrap in the network
 
         // Joiner next/previous is bootstrap
-        socket = client_io.connect('http://' + joiner)
-        socket.emit('join_response', { joiner_previous: BOOTSTRAP, joiner_next: BOOTSTRAP })
+        emit_to_node({
+          node: joiner,
+          event_: 'join_response',
+          to_emit: { joiner_previous: BOOTSTRAP, joiner_next: BOOTSTRAP }
+        })
 
         // Bootstrap next/previous is joiner
         set_previous(joiner)
@@ -65,15 +69,18 @@ if (ME == BOOTSTRAP) {
       }
     })
 
-    on_join_update_neighbours(socket)
+    on_update_neighbour(socket)
 
   })
 } else {
   // Non bootstrap
 
   // Join request to bootstrap
-  bootstrap_socket = client_io.connect('http://' + BOOTSTRAP)
-  bootstrap_socket.emit('join', { joiner:ME })
+  emit_to_node({
+    node: BOOTSTRAP,
+    event_: 'join',
+    to_emit: { joiner:ME }
+  })
 
   io.on('connection', (socket) => {
 
@@ -99,7 +106,7 @@ if (ME == BOOTSTRAP) {
       depart()
     })
 
-    on_join_update_neighbours(socket)
+    on_update_neighbour(socket)
 
   })
 
