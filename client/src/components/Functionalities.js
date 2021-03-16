@@ -82,6 +82,7 @@ export default function Functionalities({
                 onChange={(e) => setQueryValue(e.target.value)}
                 type='text'
                 value={queryValue}
+                autoFocus={true}
                 placeholder='Type a value to search'
               />
               <IconButton
@@ -123,6 +124,7 @@ export default function Functionalities({
                 onChange={(e) => setInsertValue(e.target.value)}
                 type='text'
                 value={insertValue}
+                autoFocus={true}
                 placeholder='Type some data to insert'
               />
               <IconButton
