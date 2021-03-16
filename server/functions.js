@@ -7,6 +7,7 @@ let previous = null
 let previous_hash = null
 let next = null
 let next_hash = null
+let my_key_value_pairs = {}
 
 // set
 function set_previous(new_previous) {
@@ -113,24 +114,38 @@ function on_join_general_case(joiner, ME) {
 }
 
 // insert
-function on_insert(key, ME) {
+function on_insert(socket, ME) {
+  socket.on('insert', ({ key, value }) => {
+    f_list = [
+      emit_to_node,
+      insert_key_value,
+      emit_to_node,
+      emit_to_node
+    ]
 
-  f_list = [
-    join_forward,
-    between_me_and_previous,
-    join_forward,
-    between_me_and_next
-  ]
+    arg_list = [
+      { node: previous, event_: 'insert', to_emit: { key, value } },
+      { key, value },
+      { node: next, event_: 'insert', to_emit: { key, value } },
+      { node: next, event_: 'insert_key_value', to_emit: { key, value } },
+    ]
 
-  arg_list = [
-    { forward_neighbour: previous, joiner },
-    { joiner, ME },
-    { forward_neighbour: next, joiner },
-    { joiner, ME }
-  ]
+    chord_parser(key, ME, f_list, arg_list)
+  })
+}
 
-  chord_parser(joiner, ME, f_list, arg_list)
+function on_insert_key_value(socket) {
+  socket.on('insert_key_value', ({ key, value }) => {
+    // On Insert Key,Value
 
+    console.log('This pair is for me:', { key, value })
+    console.log('Key hash:', sha1(key))
+    insert_key_value(key, value)
+  })
+}
+
+function insert_key_value({ key, value }) {
+  my_key_value_pairs = {...my_key_value_pairs, key:value }
 }
 
 // chord parser
@@ -181,5 +196,7 @@ module.exports = {
   emit_to_node,
   on_update_neighbour,
   on_join_general_case,
+  on_insert,
+  on_insert_key_value,
   depart
 }
