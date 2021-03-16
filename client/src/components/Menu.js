@@ -4,11 +4,16 @@ import Functionalities from './Functionalities'
 
 // To Menu αποτελείται από 2 components
 // Tα functionalities και το result
-export default function Menu({ ip }) {
+export default function Menu({ ip, setPortArray, portArray }) {
   const [result, setResult] = useState('')
   return (
-    <div style={{ display: 'block' }}>
-      <Functionalities setResult={setResult} ip={ip} />
+    <div>
+      <Functionalities
+        setResult={setResult}
+        ip={ip}
+        setPortArray={setPortArray}
+        portArray={portArray}
+      />
       <Result result={result} />
     </div>
   )

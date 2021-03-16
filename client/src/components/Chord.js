@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { Button } from '@chakra-ui/button'
 import io from 'socket.io-client'
 import styled from 'styled-components'
 import Graph from './Graph'
@@ -11,23 +12,33 @@ const GeneralGrid = styled.div`
   width: 100%;
   height: 98vh;
   grid-template-areas:
-    'h h h h m m'
-    'g g g g m m'
-    'g g g g m m'
-    'g g g g m m'
-    'g g g g m m'
-    'g g g g m m';
+    'h h h h h m'
+    'g g g g g m'
+    'g g g g g m'
+    'g g g g g m'
+    'g g g g g m'
+    'g g g g g m'
+    'g g g g g m'
+    'g g g g g m'
+    'g g g g g m'
+    'g g g g g m'
+    'g g g g g m'
+    'g g g g g m'
+    'g g g g g m';
 `
 const GraphGrid = styled.div`
-  border: 2px solid black;
+  border-bottom: 2px solid lightgray;
   font-size: 24px;
   background-color: #f1faee;
   grid-area: g;
 `
 
 const HeaderGrid = styled.div`
+  padding: 0;
+  margin: 0;
   border: 2px solid black;
-  background-color: #e9c46a;
+  background-color: #fff;
+  font-size: 18px;
   grid-area: h;
   display: flex;
   align-items: center;
@@ -36,7 +47,7 @@ const HeaderGrid = styled.div`
 
 const MenuGrid = styled.div`
   border: 2px solid black;
-  background-color: #f4a261;
+  background-color: #f7f7f8;
   grid-area: m;
 `
 
@@ -44,9 +55,9 @@ export default function Chord() {
   // eslint-disable-next-line
   const [serverPort, setServerPort] = useState(5000)
   const [portArray, setPortArray] = useState([
-    { ip: 'localhost:5000' },
-    { ip: 'localhost:5001' },
-    { ip: 'locahost:5002' },
+    { ip: '5000' },
+    { ip: '5001' },
+    { ip: '5002' },
   ])
 
   // useEffect(() => {
@@ -76,9 +87,12 @@ export default function Chord() {
 
   const chordRender = portArray.map(({ ip }, k) => (
     <div key={k}>
-      <button onClick={(e) => setServerPort(e.target.innerText.slice(-4))}>
+      <Button
+        colorScheme='whatsapp'
+        onClick={(e) => setServerPort(e.target.innerText.slice(-4))}
+      >
         {ip}
-      </button>
+      </Button>
     </div>
   ))
 
@@ -90,7 +104,11 @@ export default function Chord() {
         {/* <Graph /> */}
       </GraphGrid>
       <MenuGrid>
-        <Menu ip={serverPort} />
+        <Menu
+          ip={serverPort}
+          setPortArray={setPortArray}
+          portArray={portArray}
+        />
       </MenuGrid>
     </GeneralGrid>
   )
