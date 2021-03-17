@@ -1,17 +1,4 @@
 // Required
-
-const {
-  set_previous,
-  set_next,
-  get_previous,
-  get_next,
-  show_neighbours,
-  emit_to_node,
-  on_update_neighbour,
-  on_join_general_case,
-  depart
-} = require('./functions.js')
-
 const express = require('express')
 const socketio = require('socket.io')
 const http = require('http')
@@ -25,7 +12,21 @@ const io = socketio(server, {
   },
 })
 
-// Juice
+// Consts
+const {
+  set_previous,
+  set_next,
+  get_previous,
+  get_next,
+  show_neighbours,
+  emit_to_node,
+  on_update_neighbour,
+  on_join_general_case,
+  on_insert,
+  on_insert_key_value,
+  depart
+} = require('./functions.js')
+
 const ME = process.argv[2]
 const BOOTSTRAP = 'localhost:3000'
 
@@ -35,6 +36,7 @@ const MY_PORT = ME.slice(separator + 1)
 const MY_HASH = sha1(ME)
 console.log('My hash:', MY_HASH)
 
+// Juice
 if (ME == BOOTSTRAP) {
   // Bootstrap
 
@@ -65,9 +67,13 @@ if (ME == BOOTSTRAP) {
       } else {
         // General case
 
-        on_join_general_case(joiner, ME);
+        on_join_general_case(joiner, ME)
       }
     })
+
+    on_insert(socket, ME)
+
+    on_insert_key_value(socket)
 
     on_update_neighbour(socket)
 
@@ -96,8 +102,12 @@ if (ME == BOOTSTRAP) {
       // On Join Forward
 
       console.log('They sent me this guy:', joiner)
-      on_join_general_case(joiner, ME);
+      on_join_general_case(joiner, ME)
     })
+
+    on_insert(socket, ME)
+
+    on_insert_key_value(socket)
 
     socket.on('depart', () => {
       // On Depart
