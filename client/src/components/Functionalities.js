@@ -16,19 +16,21 @@ const FuncGrid = styled.div`
     'o o';
 `
 const Header = styled.div`
+  font-family: 'Press Start 2P';
   color: white;
-  font-size: 30px;
+  font-size: 18px;
   display: flex;
   justify-content: center;
   align-items: center;
   background-image: linear-gradient(60deg, #29323c 0%, #485563 100%);
   border-bottom: 2px solid gray;
+  border-radius: 5px;
 `
 // background-image: linear-gradient(60deg, #29323c 0%, #485563 100%);
 
 export default function Functionalities({
   setResult,
-  ip,
+  ip = 5000,
   setPortArray,
   portArray,
 }) {
@@ -39,6 +41,7 @@ export default function Functionalities({
   const [color, setColor] = useState('')
 
   const ButtonContainer = styled.div`
+    font-family: 'Press Start 2P';
     border-radius: 10px;
     display: flex;
     justify-content: center;
@@ -59,7 +62,7 @@ export default function Functionalities({
         onMouseEnter={() => setColor('#ffe082')}
       >
         <Button
-          size='lg'
+          size='md'
           w={200}
           colorScheme='orange'
           onClick={() => {
@@ -101,7 +104,7 @@ export default function Functionalities({
         onMouseEnter={() => setColor('#b3e5fc')}
       >
         <Button
-          size='lg'
+          size='md'
           w={200}
           colorScheme='twitter'
           onClick={() => {
@@ -145,7 +148,7 @@ export default function Functionalities({
       >
         <Button
           w={200}
-          size='lg'
+          size='md'
           colorScheme='red'
           onClick={() => {
             let result = 'You can not remove the Bootstrap Node'
@@ -170,7 +173,7 @@ export default function Functionalities({
       >
         <Button
           w={200}
-          size='lg'
+          size='md'
           colorScheme='green'
           onClick={() => {
             let result = `Overlay is not implemented yet `

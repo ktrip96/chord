@@ -23,31 +23,33 @@ const GeneralGrid = styled.div`
     'g g g g g m'
     'g g g g g m'
     'g g g g g m'
-    'g g g g g m'
     'g g g g g m';
 `
 const GraphGrid = styled.div`
   border-bottom: 2px solid lightgray;
   font-size: 24px;
-  background-color: #f1faee;
+  background-color: #fff;
   grid-area: g;
 `
 
 const HeaderGrid = styled.div`
-  padding: 0;
-  margin: 0;
-  border: 2px solid black;
   background-color: #fff;
-  font-size: 18px;
+  font-family: 'Luckiest Guy', cursive;
+  font-size: 48px;
   grid-area: h;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
 `
 
+const Description = styled.div`
+  font-size: 16px;
+  font-family: 'Press Start 2P';
+`
+
 const MenuGrid = styled.div`
-  border: 2px solid black;
-  background-color: #f7f7f8;
+  background-color: #eeebdd;
   grid-area: m;
 `
 
@@ -98,10 +100,24 @@ export default function Chord() {
 
   return (
     <GeneralGrid>
-      <HeaderGrid>Welcome to the Chord</HeaderGrid>
+      <HeaderGrid>
+        <nobr class='Lucky'>
+          Welcome to the
+          <a href='https://en.wikipedia.org/wiki/Chord_(peer-to-peer)'>
+            <span class='Lucky blue'> C</span>
+            <span class='Lucky red'>h</span>
+            <span class='Lucky yellow'>o</span>
+            <span class='Lucky blue'>r</span>
+            <span class='Lucky green'>d</span>
+          </a>
+        </nobr>
+        <Description>
+          An implementation of a Distributed Hashing Table
+        </Description>
+      </HeaderGrid>
       <GraphGrid>
         {chordRender}
-        {/* <Graph /> */}
+        <Graph />
       </GraphGrid>
       <MenuGrid>
         <Menu
