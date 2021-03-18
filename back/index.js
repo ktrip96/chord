@@ -23,7 +23,8 @@ const {
   on_update_neighbour,
   on_join_general_case,
   on_insert,
-  on_insert_key_value,
+  on_query,
+  on_delete,
   depart
 } = require('./functions.js')
 
@@ -71,11 +72,13 @@ if (ME == BOOTSTRAP) {
       }
     })
 
+    on_update_neighbour(socket)
+
     on_insert(socket, ME)
 
-    on_insert_key_value(socket)
+    on_query(socket, ME)
 
-    on_update_neighbour(socket)
+    on_delete(socket, ME)
 
   })
 } else {
@@ -113,13 +116,13 @@ if (ME == BOOTSTRAP) {
       depart()
     })
 
-    on_insert(socket, ME)
-
-    on_insert_key_value(socket)
-
     on_update_neighbour(socket)
 
-    // on_insert_forward(socket)
+    on_insert(socket, ME)
+
+    on_query(socket, ME)
+
+    on_delete(socket, ME)
 
   })
 

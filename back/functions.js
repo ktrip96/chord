@@ -35,30 +35,23 @@ function emit_to_node({ node, event_, to_emit }) {
 }
 
 // join
-function on_update_neighbour(socket) {
-  socket.on('update_neighbour', ({ new_neighbour, new_neighbour_side }) => {
+function on_join_general_case(joiner, ME) {
 
-    if (new_neighbour_side == "previous")
-      set_previous(new_neighbour)
-    else if (new_neighbour_side == "next")
-      set_next(new_neighbour)
-    else 
-      console.log('What is this madness? (' + new_neighbour_side + ')')
+  f_list = [
+    emit_to_node,
+    between_me_and_that_guy,
+    emit_to_node,
+    between_me_and_that_guy
+  ]
 
-    show_neighbours()
+  arg_list = [
+    { node: previous, event_: 'join_forward', to_emit: { joiner } },
+    { joiner, that_guy: previous, ME, side: "previous" },
+    { node: next, event_: 'join_forward', to_emit: { joiner } },
+    { joiner, that_guy: next, ME, side: "next" }
+  ]
 
-  })
-
-}
-
-function oposite_of(side) {
-
-  if (side == "previous")
-    return "next";
-  if (side == "next")
-    return "previous";
-
-  console.log("FUCK! I don't know this side:", side)
+  chord_parser(joiner, ME, f_list, arg_list)
 
 }
 
@@ -93,61 +86,99 @@ function between_me_and_that_guy({ joiner, that_guy, ME, side }) {
 
 }
 
-function on_join_general_case(joiner, ME) {
+function on_update_neighbour(socket) {
+  socket.on('update_neighbour', ({ new_neighbour, new_neighbour_side }) => {
 
-  f_list = [
-    emit_to_node,
-    between_me_and_that_guy,
-    emit_to_node,
-    between_me_and_that_guy
-  ]
+    if (new_neighbour_side == "previous")
+      set_previous(new_neighbour)
+    else if (new_neighbour_side == "next")
+      set_next(new_neighbour)
+    else 
+      console.log('What is this madness? (' + new_neighbour_side + ')')
 
-  arg_list = [
-    { node: previous, event_: 'join_forward', to_emit: { joiner } },
-    { joiner, that_guy: previous, ME, side: "previous" },
-    { node: next, event_: 'join_forward', to_emit: { joiner } },
-    { joiner, that_guy: next, ME, side: "next" }
-  ]
+    show_neighbours()
 
-  chord_parser(joiner, ME, f_list, arg_list)
+  })
+
+}
+
+function oposite_of(side) {
+
+  if (side == "previous")
+    return "next"
+  if (side == "next")
+    return "previous"
+
+  console.log("FUCK! I don't know this side:", side)
 
 }
 
 // insert
 function on_insert(socket, ME) {
-  socket.on('insert', ({ key, value }) => {
-
-    f_list = [
-      emit_to_node,
-      insert_key_value,
-      emit_to_node,
-      emit_to_node
-    ]
-
-    arg_list = [
-      { node: previous, event_: 'insert', to_emit: { key, value } },
-      { key, value },
-      { node: next, event_: 'insert', to_emit: { key, value } },
-      { node: next, event_: 'insert_key_value', to_emit: { key, value } },
-    ]
-
-    chord_parser(key, ME, f_list, arg_list)
-  })
-}
-
-function on_insert_key_value(socket) {
-  socket.on('insert_key_value', ({ key, value }) => {
-    // On Insert Key,Value
-
-    console.log('This pair is for me:', { key, value })
-    console.log('Key hash:', sha1(key))
-    insert_key_value(key, value)
+  on_event({
+    socket,
+    event_: 'insert',
+    case2func: insert_key_value,
+    case4event: 'insert_key_value',
+    ME
   })
 }
 
 function insert_key_value({ key, value }) {
-  my_key_value_pairs = {...my_key_value_pairs, key:value }
+  console.log('This pair is for me:', { key, value })
+  console.log('Key hash:', sha1(key))
+  my_key_value_pairs = {...my_key_value_pairs, [key]:value }
 }
+
+// query
+function on_query(socket, ME) {
+  on_event({
+    socket,
+    event_: 'query',
+    case2func: return_query_value,
+    case4event: 'return_query_value',
+    ME
+  })
+}
+
+function return_query_value({ key }) {
+  console.log('Here\'s everything:', my_key_value_pairs)
+  console.log({ key })
+  console.log('Here\'s the value you asked for sir:', my_key_value_pairs[key])
+}
+
+// delete
+function on_delete(socket, ME) {
+  on_event({
+    socket,
+    event_: 'delete',
+    case2func: delete_pair,
+    case4event: 'delete_pair',
+    ME
+  })
+}
+
+function delete_pair({ key }) {
+  console.log('Here\'s everything:', my_key_value_pairs)
+  console.log('Deleting pair with key:', key)
+  delete my_key_value_pairs[key]
+  console.log('Here\'s everything after deletion:', my_key_value_pairs)
+}
+
+// depart
+function depart() {
+  emit_to_node({
+    node: next,
+    event_: 'update_neighbour',
+    to_emit: { new_neighbour: previous, new_neighbour_side: "previous" }
+  })
+  emit_to_node({
+    node: previous,
+    event_: 'update_neighbour',
+    to_emit: { new_neighbour: next, new_neighbour_side: "next" }
+  })
+  setTimeout(() => process.exit(),1000)
+} 
 
 // chord parser
 function chord_parser(to_be_hashed, ME, f_list, arg_list) {
@@ -173,20 +204,32 @@ function chord_parser(to_be_hashed, ME, f_list, arg_list) {
 
 }
 
-// depart
-function depart() {
-  emit_to_node({
-    node: next,
-    event_: 'update_neighbour',
-    to_emit: { new_neighbour: previous, new_neighbour_side: "previous" }
+// on event
+function on_event({ socket, event_, case2func, case4event, ME }) {
+  socket.on(event_, (event_object) => {
+    console.log({ event_, event_object, case4event })
+
+    f_list = [
+      emit_to_node,
+      case2func,
+      emit_to_node,
+      emit_to_node
+    ]
+
+    arg_list = [
+      { node: previous, event_, to_emit: event_object },
+      event_object,
+      { node: next, event_, to_emit: event_object },
+      { node: next, event_: case4event, to_emit: event_object },
+    ]
+
+    chord_parser(event_object['key'], ME, f_list, arg_list)
   })
-  emit_to_node({
-    node: previous,
-    event_: 'update_neighbour',
-    to_emit: { new_neighbour: next, new_neighbour_side: "next" }
+
+  socket.on(case4event, (case4event_object) => {
+    case2func(case4event_object)
   })
-  setTimeout(() => process.exit(),1000)
-} 
+}
 
 module.exports = {
   set_previous,
@@ -198,6 +241,7 @@ module.exports = {
   on_update_neighbour,
   on_join_general_case,
   on_insert,
-  on_insert_key_value,
+  on_query,
+  on_delete,
   depart
 }
