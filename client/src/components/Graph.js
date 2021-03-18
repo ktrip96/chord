@@ -1,24 +1,64 @@
 import React from 'react'
 import ReactFlow, { Controls } from 'react-flow-renderer'
+import 'react-flow-renderer/dist/style.css'
+import bootstrap from '../images/Bootstrap.png'
+import node from '../images/Node.png'
+
+const onLoad = (reactFlowInstance) => {
+  reactFlowInstance.fitView()
+}
 
 const elements = [
   {
     id: '1',
     type: 'input', // input node
-    data: { label: 'Input Node' },
+    data: {
+      label: (
+        <div>
+          <img
+            src={bootstrap}
+            style={{ width: '60px', height: '60px', margin: 'auto' }}
+            alt='bootstrap'
+          />
+          <p>Bootstrap</p>
+        </div>
+      ),
+    },
     position: { x: 250, y: 25 },
   },
   // default node
   {
     id: '2',
     // you can also pass a React component as a label
-    data: { label: <div>Default Node</div> },
+    data: {
+      label: (
+        <div>
+          <img
+            src={node}
+            style={{ width: '60px', height: '60px', margin: 'auto' }}
+            alt='Node'
+          />
+          <p>Node</p>
+        </div>
+      ),
+    },
     position: { x: 100, y: 125 },
   },
   {
     id: '3',
     type: 'output', // output node
-    data: { label: 'Output Node' },
+    data: {
+      label: (
+        <div>
+          <img
+            src={node}
+            style={{ width: '60px', height: '60px', margin: 'auto' }}
+            alt='Node'
+          />
+          <p>Node</p>
+        </div>
+      ),
+    },
     position: { x: 250, y: 250 },
   },
   // animated edge
@@ -31,11 +71,10 @@ export default function Graph() {
   return (
     <div
       style={{
-        height: 600,
-        border: '2px solid black',
+        height: 700,
       }}
     >
-      <ReactFlow elements={elements}>
+      <ReactFlow elements={elements} onLoad={onLoad}>
         <Controls />
       </ReactFlow>
     </div>

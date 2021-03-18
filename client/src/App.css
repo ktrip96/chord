@@ -1,7 +1,46 @@
 * {
-    font-family: 'Open Sans'
+    font-family: 'Press Start 2P'
 }
 
+::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+    font-size:14px;
+  }
+
+
+.Lucky{
+    font-family: 'Luckiest Guy';
+}
+
+.green{
+    color:#8bc34a;
+}
+
+.red{
+    color:#f44336;
+}
+
+.blue{
+    color:#2196f3;
+}
+
+.yellow{
+    color:#ffc107;
+}
+
+
+.react-flow__node {
+    border-radius:50%;
+    width:300px;
+    font-size:8px;
+
+    -webkit-box-shadow: 0px 10px 13px -7px #000000, 5px 5px 15px 5px rgba(0,0,0,0); 
+    box-shadow: 0px 10px 13px -7px #000000, 5px 5px 15px 5px rgba(0,0,0,0); 
+  }
+
+  .react-flow__node:hover {
+    cursor:pointer;
+    
+  }
 /* font-family: 'Press Start 2P', cursive; */
 
 /* input:focus{
