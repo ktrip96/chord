@@ -117,8 +117,7 @@ export default function Chord() {
       </HeaderGrid>
       <GraphGrid>
         {chordRender}
-        <
-           />
+        <Graph />
       </GraphGrid>
       <MenuGrid>
         <Menu

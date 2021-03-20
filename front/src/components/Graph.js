@@ -8,16 +8,25 @@ const onLoad = (reactFlowInstance) => {
   reactFlowInstance.fitView()
 }
 
+const nodeStyle = {
+  border: '1px solid black',
+  width: 150,
+}
+
 const elements = [
   {
     id: '1',
     type: 'input', // input node
     data: {
       label: (
-        <div>
+        <div onClick={() => alert('yo')}>
           <img
             src={bootstrap}
-            style={{ width: '60px', height: '60px', margin: 'auto' }}
+            style={{
+              width: '60px',
+              height: '60px',
+              margin: 'auto',
+            }}
             alt='bootstrap'
           />
           <p>Bootstrap</p>
@@ -25,6 +34,7 @@ const elements = [
       ),
     },
     position: { x: 250, y: 25 },
+    style: nodeStyle,
   },
   // default node
   {
@@ -32,7 +42,7 @@ const elements = [
     // you can also pass a React component as a label
     data: {
       label: (
-        <div>
+        <div onClick={() => alert('YO')}>
           <img
             src={node}
             style={{ width: '60px', height: '60px', margin: 'auto' }}
@@ -43,6 +53,7 @@ const elements = [
       ),
     },
     position: { x: 100, y: 125 },
+    style: nodeStyle,
   },
   {
     id: '3',
@@ -60,6 +71,7 @@ const elements = [
       ),
     },
     position: { x: 250, y: 250 },
+    style: nodeStyle,
   },
   // animated edge
   { id: 'e1-2', source: '1', target: '2', animated: true },
@@ -71,7 +83,7 @@ export default function Graph() {
   return (
     <div
       style={{
-        height: 700,
+        height: 720,
       }}
     >
       <ReactFlow elements={elements} onLoad={onLoad}>
