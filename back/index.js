@@ -20,11 +20,8 @@ const {
   get_next,
   show_neighbours,
   emit_to_node,
-  on_update_neighbour,
-  on_join_general_case,
-  on_insert,
-  on_query,
-  on_delete,
+  join_general,
+  common_to_all,
   depart
 } = require('./functions.js')
 
@@ -39,52 +36,43 @@ console.log('My hash:', MY_HASH)
 
 // Juice
 if (ME == BOOTSTRAP) {
-  // Bootstrap
+  // Bootstrap code
 
   set_previous(BOOTSTRAP)
   set_next(BOOTSTRAP)
 
   io.on('connection', (socket) => {
-    // On Connection
 
     socket.on('join', ({ joiner }) => {
       // On Join
 
       if (get_next() == BOOTSTRAP) {
-        // Special case: Only bootstrap in the network
+        // On special case where only bootstrap is in the network, make 2 node network
 
-        // Joiner next/previous is bootstrap
         emit_to_node({
           node: joiner,
           event_: 'join_response',
           to_emit: { joiner_previous: BOOTSTRAP, joiner_next: BOOTSTRAP }
         })
 
-        // Bootstrap next/previous is joiner
         set_previous(joiner)
         set_next(joiner)
         show_neighbours()
 
       } else {
-        // General case
+        // On general case, call the join general case function
 
-        on_join_general_case(joiner, ME)
+        join_general(joiner, ME)
       }
     })
 
-    on_update_neighbour(socket)
-
-    on_insert(socket, ME)
-
-    on_query(socket, ME)
-
-    on_delete(socket, ME)
+    common_to_all(socket, ME)
 
   })
 } else {
-  // Non bootstrap
+  // Non bootstrap code
 
-  // Join request to bootstrap
+  // Send join request to bootstrap
   emit_to_node({
     node: BOOTSTRAP,
     event_: 'join',
@@ -94,7 +82,7 @@ if (ME == BOOTSTRAP) {
   io.on('connection', (socket) => {
 
     socket.on('join_response', ({ joiner_previous, joiner_next }) => {
-      // On Join Response
+      // On join response, set neighbours
 
       set_previous(joiner_previous)
       set_next(joiner_next)
@@ -103,26 +91,20 @@ if (ME == BOOTSTRAP) {
     })
 
     socket.on('join_forward', ({ joiner }) => {
-      // On Join Forward
+      // On join forward, call join general case function
 
       console.log('They sent me this guy:', joiner)
-      on_join_general_case(joiner, ME)
+      join_general(joiner, ME)
     })
 
     socket.on('depart', () => {
-      // On Depart
-      console.log('depart')
+      // On depart, call depart function
 
+      console.log('depart')
       depart()
     })
 
-    on_update_neighbour(socket)
-
-    on_insert(socket, ME)
-
-    on_query(socket, ME)
-
-    on_delete(socket, ME)
+    common_to_all(socket, ME)
 
   })
 
