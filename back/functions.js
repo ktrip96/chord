@@ -115,7 +115,7 @@ function oposite_of(side) {
 
 // insert
 function on_insert(socket, ME) {
-  on_event({
+  on_command({
     socket,
     event_: 'insert',
     case2func: insert_key_value,
@@ -132,7 +132,7 @@ function insert_key_value({ key, value }) {
 
 // query
 function on_query(socket, ME) {
-  on_event({
+  on_command({
     socket,
     event_: 'query',
     case2func: return_query_value,
@@ -149,7 +149,7 @@ function return_query_value({ key }) {
 
 // delete
 function on_delete(socket, ME) {
-  on_event({
+  on_command({
     socket,
     event_: 'delete',
     case2func: delete_pair,
@@ -180,32 +180,9 @@ function depart() {
   setTimeout(() => process.exit(),1000)
 } 
 
-// chord parser
-function chord_parser(to_be_hashed, ME, f_list, arg_list) {
+// on command
+function on_command({ socket, event_, case2func, case4event, ME }) {
 
-  let hash = sha1(to_be_hashed)
-  let MY_HASH = sha1(ME)
-
-  if (hash < MY_HASH) {
-
-    if (hash < previous_hash && MY_HASH > previous_hash)
-      f_list[0](arg_list[0])
-    else
-      f_list[1](arg_list[1])
-
-  } else {
-
-    if (hash > next_hash && MY_HASH < next_hash)
-      f_list[2](arg_list[2])
-    else
-      f_list[3](arg_list[3])
-
-  } 
-
-}
-
-// on event
-function on_event({ socket, event_, case2func, case4event, ME }) {
   socket.on(event_, (event_object) => {
     console.log({ event_, event_object, case4event })
 
@@ -229,6 +206,31 @@ function on_event({ socket, event_, case2func, case4event, ME }) {
   socket.on(case4event, (case4event_object) => {
     case2func(case4event_object)
   })
+
+}
+
+// chord parser
+function chord_parser(to_be_hashed, ME, f_list, arg_list) {
+
+  let hash = sha1(to_be_hashed)
+  let MY_HASH = sha1(ME)
+
+  if (hash < MY_HASH) {
+
+    if (hash < previous_hash && MY_HASH > previous_hash)
+      f_list[0](arg_list[0])
+    else
+      f_list[1](arg_list[1])
+
+  } else {
+
+    if (hash > next_hash && MY_HASH < next_hash)
+      f_list[2](arg_list[2])
+    else
+      f_list[3](arg_list[3])
+
+  } 
+
 }
 
 module.exports = {
