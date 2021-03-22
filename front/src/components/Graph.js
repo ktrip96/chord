@@ -1,63 +1,20 @@
 import React from 'react'
 import ReactFlow, { Controls } from 'react-flow-renderer'
 import 'react-flow-renderer/dist/style.css'
-import bootstrap from '../images/Bootstrap.png'
 import node from '../images/Node.png'
 
-const onLoad = (reactFlowInstance) => {
-  reactFlowInstance.fitView()
-}
-
+// Style of every node in the chord
 const nodeStyle = {
   border: '1px solid black',
   width: 150,
+  borderRadius: '40%',
 }
 
-const elements = [
-  {
-    id: '1',
-    type: 'input', // input node
-    data: {
-      label: (
-        <div onClick={() => alert('yo')}>
-          <img
-            src={bootstrap}
-            style={{
-              width: '60px',
-              height: '60px',
-              margin: 'auto',
-            }}
-            alt='bootstrap'
-          />
-          <p>Bootstrap</p>
-        </div>
-      ),
-    },
-    position: { x: 250, y: 25 },
-    style: nodeStyle,
-  },
-  // default node
-  {
-    id: '2',
-    // you can also pass a React component as a label
-    data: {
-      label: (
-        <div onClick={() => alert('YO')}>
-          <img
-            src={node}
-            style={{ width: '60px', height: '60px', margin: 'auto' }}
-            alt='Node'
-          />
-          <p>Node</p>
-        </div>
-      ),
-    },
-    position: { x: 100, y: 125 },
-    style: nodeStyle,
-  },
-  {
-    id: '3',
-    type: 'output', // output node
+// η elementTemplate παίρνει μία μεταβλητή (ip, η οποία έρχεται με κάθε join)
+// και κάνει κάνει construct το json template του κάθε element.
+const elementTemplate = (ip) => {
+  return {
+    id: `${ip}`,
     data: {
       label: (
         <div>
@@ -70,23 +27,113 @@ const elements = [
         </div>
       ),
     },
-    position: { x: 250, y: 250 },
+    position: {
+      x: Math.floor(Math.random() * 200) + 1,
+      y: Math.floor(Math.random() * 200) + 1,
+    },
     style: nodeStyle,
-  },
-  // animated edge
-  { id: 'e1-2', source: '1', target: '2', animated: true },
-  { id: 'e2-3', source: '2', target: '3' },
-  { id: 'e3-1', source: '1', target: '3', animated: true },
-]
+  }
+}
 
-export default function Graph() {
+// η edgeTemplate κάνει το αντίστοιχο με την element, αλλά για edges.
+const edgeTemplate = (src, dst) => {
+  return {
+    id: 'e1-2',
+    source: src,
+    target: dst,
+    animated: true,
+  }
+}
+
+// μετατρέπει μια γωνία από μοίρες σε radians
+const toRadians = (angle) => {
+  return angle * (Math.PI / 180)
+}
+
+export default function Graph({ ip, setPortArray, setServerPort, elements }) {
+  // When you click each node, make the 'active' ip = element.id
+  const onElementClick = (event, element) => setServerPort(element.id)
+
+  // Function for better Graph view
+  const onLoad = (reactFlowInstance) => {
+    reactFlowInstance.fitView()
+  }
+
+  // returns an array with pairs
+  const coordinatesCalculator = (length, radius) => {
+    if (length === 1) return [{ x: 0, y: 0 }]
+    let totalDegrees = 360
+    let subtractDegrees = Math.round(360 / length)
+    let coordinatesArray = []
+    for (let i = 0; i < length; i++) {
+      totalDegrees = totalDegrees - subtractDegrees
+      let x = Math.round(Math.sin(toRadians(totalDegrees)) * radius)
+      let y = Math.round(Math.cos(toRadians(totalDegrees)) * radius)
+      coordinatesArray.push({ x, y })
+    }
+    return coordinatesArray
+  }
+
+  // Αυτο το function θα καλειται καθε φορα που προστιθεται ένας
+  // καινουργιος κομβος στο elements
+  // θα ειναι μεσα σε μια useEffect με dependency το elements
+  const handleAddNode = () => {
+    //* setIsLoading true
+
+    // Add the new element to the state
+    // αυτό το βήμα θα γίνει από τα sockets.
+    console.log('elements pure:', elements)
+    let random = Math.floor(Math.random() * 6) + 1
+    // setPortArray((elements) => [...elements, elementTemplate(random + 5000)])
+    const testArray = [...elements, elementTemplate(random + 5000)]
+
+    console.log('testArray is:', testArray)
+
+    //*Wait for state to finish and calculate the correct coordinates for our nodes
+    let coordinates = []
+
+    coordinates = coordinatesCalculator(testArray.length, 150)
+    // * For each node in the state
+
+    const updatedPortArray = coordinates.map((item, i) => {
+      return {
+        ...testArray[i],
+        position: item,
+      }
+    })
+
+    console.log('New elements:', updatedPortArray)
+    setPortArray(updatedPortArray)
+
+    //   const convertToObjAndSetData = (arrWithNames) => {
+    //     const newArrayWithObj = arrWithNames.map( (arrName, i) => {
+    //         return {
+    //             ...data[i], <---- so here we copy in the obj from Data,
+    //             name: arrName, <------ here we update the value we wanna change.
+    //         }
+    //     })
+    //     setData(newArrayWithObj)
+    // }
+    //* update Edges
+    //* setIsLoading false
+  }
+
   return (
     <div
       style={{
         height: 720,
       }}
     >
-      <ReactFlow elements={elements} onLoad={onLoad}>
+      {/* for development reasons */}
+      <p>ip: {ip}</p>
+      {/* <button onClick={() => alert('add nod')}> Add Node</button> */}
+      <button onClick={handleAddNode}> Add Node</button>
+
+      <ReactFlow
+        onElementClick={onElementClick}
+        elements={elements}
+        onLoad={onLoad}
+      >
         <Controls />
       </ReactFlow>
     </div>

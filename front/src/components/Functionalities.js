@@ -152,7 +152,8 @@ export default function Functionalities({
           colorScheme='red'
           onClick={() => {
             let result = 'You can not remove the Bootstrap Node'
-            if (ip !== '5000') {
+            // eslint-disable-next-line
+            if (ip != 5000) {
               const newPortArray = portArray.filter((item) => item.ip !== ip)
               setPortArray(newPortArray)
               result = `The ${ip} has left the Chord `
