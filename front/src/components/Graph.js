@@ -14,8 +14,7 @@ const nodeStyle = {
 // και κάνει κάνει construct το json template του κάθε element.
 const elementTemplate = (ip) => {
   return {
-    id: ip,
-    type: 'output',
+    id: `${ip}`,
     data: {
       label: (
         <div>
@@ -28,7 +27,10 @@ const elementTemplate = (ip) => {
         </div>
       ),
     },
-    position: { x: '100', y: '100' },
+    position: {
+      x: Math.floor(Math.random() * 200) + 1,
+      y: Math.floor(Math.random() * 200) + 1,
+    },
     style: nodeStyle,
   }
 }
@@ -59,6 +61,7 @@ export default function Graph({ ip, setPortArray, setServerPort, elements }) {
 
   // returns an array with pairs
   const coordinatesCalculator = (length, radius) => {
+    if (length === 1) return [{ x: 0, y: 0 }]
     let totalDegrees = 360
     let subtractDegrees = Math.round(360 / length)
     let coordinatesArray = []
@@ -79,16 +82,38 @@ export default function Graph({ ip, setPortArray, setServerPort, elements }) {
 
     // Add the new element to the state
     // αυτό το βήμα θα γίνει από τα sockets.
-    setPortArray([...elements, elementTemplate(5001)])
+    console.log('elements pure:', elements)
+    let random = Math.floor(Math.random() * 6) + 1
+    // setPortArray((elements) => [...elements, elementTemplate(random + 5000)])
+    const testArray = [...elements, elementTemplate(random + 5000)]
+
+    console.log('testArray is:', testArray)
 
     //*Wait for state to finish and calculate the correct coordinates for our nodes
-    setTimeout(() => {
-      const coordinates = coordinatesCalculator(elements.length, 150)
-    }, 500)
-    //* For each node in the state
-    for (let i = 0; i < elements.length; i++) {
-      //* change their x and y to the correct value
-    }
+    let coordinates = []
+
+    coordinates = coordinatesCalculator(testArray.length, 150)
+    // * For each node in the state
+
+    const updatedPortArray = coordinates.map((item, i) => {
+      return {
+        ...testArray[i],
+        position: item,
+      }
+    })
+
+    console.log('New elements:', updatedPortArray)
+    setPortArray(updatedPortArray)
+
+    //   const convertToObjAndSetData = (arrWithNames) => {
+    //     const newArrayWithObj = arrWithNames.map( (arrName, i) => {
+    //         return {
+    //             ...data[i], <---- so here we copy in the obj from Data,
+    //             name: arrName, <------ here we update the value we wanna change.
+    //         }
+    //     })
+    //     setData(newArrayWithObj)
+    // }
     //* update Edges
     //* setIsLoading false
   }

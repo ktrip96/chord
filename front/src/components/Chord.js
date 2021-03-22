@@ -61,7 +61,6 @@ export default function Chord() {
     {
       id: '5000',
       type: 'input', // input node,
-      recognize: 'bootstrap',
       data: {
         label: (
           <div>
@@ -101,7 +100,7 @@ export default function Chord() {
   //     // του 5002, και έχει δεν ακούω τον boostrap
   //     // Πρέπει κάπου να κρατήσω το socket που άνοιξα με το bootstrap
   //     console.log(`${joiner} joined the chord`)
-  //     setPortArray([...portArray, { ip: joiner }])
+  //     setPortArray(portArray => [...portArray, { ip: joiner }])
   //     // κάνε update το array που κρατάει τα nodes που είναι αποθηκευμένα στο chord
   //   })
 
