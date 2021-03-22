@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Button } from '@chakra-ui/button'
+import bootstrap from '../images/Bootstrap.png'
 import io from 'socket.io-client'
 import styled from 'styled-components'
 import Graph from './Graph'
@@ -57,9 +58,33 @@ export default function Chord() {
   // eslint-disable-next-line
   const [serverPort, setServerPort] = useState(5000)
   const [portArray, setPortArray] = useState([
-    { ip: '5000' },
-    { ip: '5001' },
-    { ip: '5002' },
+    {
+      id: '5000',
+      type: 'input', // input node,
+      recognize: 'bootstrap',
+      data: {
+        label: (
+          <div>
+            <img
+              src={bootstrap}
+              style={{
+                width: '60px',
+                height: '60px',
+                margin: 'auto',
+              }}
+              alt='bootstrap'
+            />
+            <p>Bootstrap</p>
+          </div>
+        ),
+      },
+      position: { x: 0, y: 0 },
+      style: {
+        border: '1px solid black',
+        width: 150,
+        borderRadius: '40%',
+      },
+    },
   ])
 
   // useEffect(() => {
@@ -87,16 +112,16 @@ export default function Chord() {
   //   // })
   // }, [serverPort])
 
-  const chordRender = portArray.map(({ ip }, k) => (
-    <div key={k}>
-      <Button
-        colorScheme='whatsapp'
-        onClick={(e) => setServerPort(e.target.innerText.slice(-4))}
-      >
-        {ip}
-      </Button>
-    </div>
-  ))
+  // const chordRender = portArray.map(({ ip }, k) => (
+  //   <div key={k}>
+  //     <Button
+  //       colorScheme='whatsapp'
+  //       onClick={(e) => setServerPort(e.target.innerText.slice(-4))}
+  //     >
+  //       {ip}
+  //     </Button>
+  //   </div>
+  // ))
 
   return (
     <GeneralGrid>
@@ -116,8 +141,13 @@ export default function Chord() {
         </Description>
       </HeaderGrid>
       <GraphGrid>
-        {chordRender}
-        <Graph />
+        {/* {chordRender} */}
+        <Graph
+          ip={serverPort}
+          setServerPort={setServerPort}
+          setPortArray={setPortArray}
+          elements={portArray}
+        />
       </GraphGrid>
       <MenuGrid>
         <Menu
