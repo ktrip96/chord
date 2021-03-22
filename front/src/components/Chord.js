@@ -60,7 +60,6 @@ export default function Chord() {
   const [portArray, setPortArray] = useState([
     {
       id: '5000',
-      type: 'input', // input node,
       data: {
         label: (
           <div>
