@@ -1,4 +1,3 @@
-// Required
 const express = require('express')
 const socketio = require('socket.io')
 const http = require('http')
@@ -12,16 +11,16 @@ const io = socketio(server, {
   },
 })
 
-// Consts
 const {
   set_previous,
   set_next,
   get_previous,
   get_next,
+  get_front_socket,
   show_neighbours,
   show_event,
-  hit_node,
-  join_general,
+  hit_socket,
+  join_general_case,
   common_to_all,
   depart
 } = require('./functions.js')
@@ -35,6 +34,7 @@ const MY_PORT = ME.slice(separator + 1)
 const MY_HASH = sha1(ME)
 console.log('My hash:', MY_HASH)
 
+
 // Juice
 if (ME == BOOTSTRAP) {
   // Bootstrap code
@@ -47,10 +47,12 @@ if (ME == BOOTSTRAP) {
     socket.on('join', ({ joiner }) => {
       show_event('join', { joiner })
 
+      // get_front_socket().emit('join', { joiner })
+
       if (get_next() == BOOTSTRAP) {
         // Special case: only bootstrap is in the network, make 2 node network
 
-        hit_node({
+        hit_socket({
           node: joiner,
           event_: 'join_response',
           to_emit: { joiner_previous: BOOTSTRAP, joiner_next: BOOTSTRAP }
@@ -61,7 +63,7 @@ if (ME == BOOTSTRAP) {
         show_neighbours()
 
       } else {
-        join_general(joiner, ME)
+        join_general_case(joiner, ME)
       }
     })
 
@@ -71,7 +73,7 @@ if (ME == BOOTSTRAP) {
 } else {
   // Non bootstrap code
 
-  hit_node({
+  hit_socket({
     node: BOOTSTRAP,
     event_: 'join',
     to_emit: { joiner:ME }
@@ -91,7 +93,7 @@ if (ME == BOOTSTRAP) {
     socket.on('forward_join', ({ joiner }) => {
       show_event('forward_join', { joiner })
 
-      join_general(joiner, ME)
+      join_general_case(joiner, ME)
     })
 
     socket.on('depart', () => {

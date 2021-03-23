@@ -1,27 +1,33 @@
-// required
 const sha1 = require('sha1')
 const client_io = require('socket.io-client')
 
-// vars for previous/next and their hashes
-let previous = null
-let previous_hash = null
-let next = null
-let next_hash = null
+let front_socket
+let previous
+let previous_hash
+let previous_socket
+let next
+let next_hash
+let next_socket
 let my_key_value_pairs = {}
 
-// set previous/next functions
 function set_previous(new_previous) {
   previous = new_previous
   previous_hash = sha1(previous)
+  if (previous_socket != null)
+    previous_socket.close()
+  previous_socket = client_io.connect('http://' + new_previous)
 }
 function set_next(new_next) {
   next = new_next
   next_hash = sha1(next)
+  if (next_socket != null)
+    next_socket.close()
+  next_socket = client_io.connect('http://' + new_next)
 }
 
-// get previous/next functions
 function get_previous() { return previous; }
 function get_next() { return next; }
+function get_front_socket() { return front_socket; }
 
 // debugging
 function show_neighbours() {
@@ -35,19 +41,16 @@ function general_debugging(string, object) {
   console.log(object)
 }
 
-
-// hit node at particular event with the corresponding object
-function hit_node({ node, event_, to_emit }) {
+function hit_socket({ node, event_, to_emit }) {
   socket = client_io.connect('http://' + node)
   socket.emit(event_, to_emit)
 }
 
-// join general case function
-function join_general(joiner, ME) {
+function join_general_case(joiner, ME) {
 
   function forward_join_function_object(node){
     return {
-      function_: hit_node,
+      function_: hit_socket,
       argument: {
         node,
         event_: 'forward_join',
@@ -104,14 +107,14 @@ function place_node({ joiner, that_guy, ME, side }) {
     console.log('OH NO you SHOULDN\'T have seen that!')
 
   // send neighbour values to joiner
-  hit_node({
+  hit_socket({
     node: joiner,
     event_: 'join_response',
     to_emit: { joiner_previous, joiner_next }
   })
 
   // send joiner as new neighbour to that_guy
-  hit_node({
+  hit_socket({
     node: that_guy,
     event_: 'update_neighbour',
     to_emit: {
@@ -162,7 +165,6 @@ function oposite_of(side) {
 
 }
 
-// on_command with insert_key_value as destination_function
 function on_insert(socket, ME) {
 
   function insert_key_value({ key, value }) {
@@ -180,7 +182,6 @@ function on_insert(socket, ME) {
 
 }
 
-// on_command with return_query_value as destination_function
 function on_query(socket, ME) {
 
   function return_query_value({ key }) {
@@ -199,7 +200,6 @@ function on_query(socket, ME) {
 
 }
 
-// on_command with delete_pair as destination_function
 function on_delete(socket, ME) {
 
   function delete_pair({ key }) {
@@ -250,7 +250,7 @@ function on_command({
       },
       // case 3: tell next to run command
       {
-        function_: hit_node,
+        function_: hit_socket,
         argument: {
           node: next,
           event_: event_ + '_reached_destination',
@@ -264,7 +264,7 @@ function on_command({
 
   function forward_command_function_object(node, to_emit){
     return {
-      function_: hit_node,
+      function_: hit_socket,
       argument: { node, event_: 'forward_' + event_, to_emit }
     }
   }
@@ -272,7 +272,7 @@ function on_command({
   function run_destination_function_and_respond(object){
 
     response = destination_function(object)
-    hit_node({
+    hit_socket({
       node: object['initial_node'],
       event_: event_ + '_response',
       to_emit: response
@@ -308,10 +308,16 @@ function on_command({
 
 }
 
-// depart just tells neighbours to update their neighbours
+
+function on_front(socket) {
+  socket.on('front', () => {
+    front_socket = socket
+  })
+}
+
 function depart() {
 
-  hit_node({
+  hit_socket({
     node: next,
     event_: 'update_neighbour',
     to_emit: {
@@ -319,7 +325,7 @@ function depart() {
       new_neighbour_side: 'previous'
     }
   })
-  hit_node({
+  hit_socket({
     node: previous,
     event_: 'update_neighbour',
     to_emit: {
@@ -331,11 +337,6 @@ function depart() {
 
 } 
 
-// hash_comparator compares a hash with hashes of:
-//   - this node
-//   - next
-//   - previous
-// to determine which fucntion from the functions_list to run
 function hash_comparator({ to_be_hashed, ME, functions_list }) {
 
   let hash = sha1(to_be_hashed)
@@ -361,6 +362,7 @@ function hash_comparator({ to_be_hashed, ME, functions_list }) {
 
 // Events common to all nodes
 function common_to_all(socket, ME) {
+    on_front(socket)
     on_update_neighbour(socket)
     on_insert(socket, ME)
     on_query(socket, ME)
@@ -372,10 +374,11 @@ module.exports = {
   set_next,
   get_previous,
   get_next,
+  get_front_socket,
   show_neighbours,
   show_event,
-  hit_node,
-  join_general,
+  hit_socket,
+  join_general_case,
   common_to_all,
   depart
 }
