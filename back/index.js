@@ -19,7 +19,8 @@ const {
   get_previous,
   get_next,
   show_neighbours,
-  emit_to_node,
+  show_event,
+  hit_node,
   join_general,
   common_to_all,
   depart
@@ -44,12 +45,12 @@ if (ME == BOOTSTRAP) {
   io.on('connection', (socket) => {
 
     socket.on('join', ({ joiner }) => {
-      // On Join
+      show_event('join', { joiner })
 
       if (get_next() == BOOTSTRAP) {
-        // On special case where only bootstrap is in the network, make 2 node network
+        // Special case: only bootstrap is in the network, make 2 node network
 
-        emit_to_node({
+        hit_node({
           node: joiner,
           event_: 'join_response',
           to_emit: { joiner_previous: BOOTSTRAP, joiner_next: BOOTSTRAP }
@@ -60,8 +61,6 @@ if (ME == BOOTSTRAP) {
         show_neighbours()
 
       } else {
-        // On general case, call the join general case function
-
         join_general(joiner, ME)
       }
     })
@@ -72,8 +71,7 @@ if (ME == BOOTSTRAP) {
 } else {
   // Non bootstrap code
 
-  // Send join request to bootstrap
-  emit_to_node({
+  hit_node({
     node: BOOTSTRAP,
     event_: 'join',
     to_emit: { joiner:ME }
@@ -82,7 +80,7 @@ if (ME == BOOTSTRAP) {
   io.on('connection', (socket) => {
 
     socket.on('join_response', ({ joiner_previous, joiner_next }) => {
-      // On join response, set neighbours
+      show_event('join_response', { joiner_previous, joiner_next })
 
       set_previous(joiner_previous)
       set_next(joiner_next)
@@ -90,17 +88,15 @@ if (ME == BOOTSTRAP) {
       show_neighbours()
     })
 
-    socket.on('join_forward', ({ joiner }) => {
-      // On join forward, call join general case function
+    socket.on('forward_join', ({ joiner }) => {
+      show_event('forward_join', { joiner })
 
-      console.log('They sent me this guy:', joiner)
       join_general(joiner, ME)
     })
 
     socket.on('depart', () => {
-      // On depart, call depart function
+      show_event('depart', {})
 
-      console.log('depart')
       depart()
     })
 
