@@ -41,43 +41,40 @@ function general_debugging(string, object) {
   console.log(object)
 }
 
-function hit_socket({ node, event_, to_emit }) {
+function hit_node({ node, event_, to_emit }) {
   socket = client_io.connect('http://' + node)
   socket.emit(event_, to_emit)
+}
+function hit_previous({ event_, to_emit }) {
+  previous_socket.emit(event_, to_emit)
+}
+function hit_next({ event_, to_emit }) {
+  next_socket.emit(event_, to_emit)
 }
 
 function join_general_case(joiner, ME) {
 
-  function forward_join_function_object(node){
-    return {
-      function_: hit_socket,
-      argument: {
-        node,
-        event_: 'forward_join',
-        to_emit: { joiner }
-      }
-    }
-  }
-
-  function place_node_function_object(side){
-
-    if (side == 'previous')
-      that_guy = previous
-    else if (side == 'next')
-      that_guy = next
-
-    return {
-      function_: place_node,
-      argument: { joiner, that_guy, ME, side }
-    }
-
-  }
-
   functions_list = [
-    forward_join_function_object(previous),
-    place_node_function_object('previous'),
-    place_node_function_object('next'),
-    forward_join_function_object(next)
+    {
+      function_: hit_previous,
+      argument: { event_: 'forward_join', to_emit: { joiner } }
+    },
+    {
+      function_: place_node,
+      argument: {
+        joiner, ME, that_guy: previous, side: 'previous'
+      }
+    },
+    {
+      function_: place_node,
+      argument: {
+        joiner, ME, that_guy: next, side: 'next'
+      }
+    },
+    {
+      function_: hit_next,
+      argument: { event_: 'forward_join', to_emit: { joiner } }
+    }
   ]
 
   hash_comparator({ to_be_hashed: joiner, ME, functions_list })
@@ -85,7 +82,7 @@ function join_general_case(joiner, ME) {
 }
 
 // place new node between me and one of my neighbours
-function place_node({ joiner, that_guy, ME, side }) {
+function place_node({ joiner, ME, that_guy, side }) {
 
   let joiner_previous
   let joiner_next
@@ -107,14 +104,14 @@ function place_node({ joiner, that_guy, ME, side }) {
     console.log('OH NO you SHOULDN\'T have seen that!')
 
   // send neighbour values to joiner
-  hit_socket({
+  hit_node({
     node: joiner,
     event_: 'join_response',
     to_emit: { joiner_previous, joiner_next }
   })
 
   // send joiner as new neighbour to that_guy
-  hit_socket({
+  hit_node({
     node: that_guy,
     event_: 'update_neighbour',
     to_emit: {
@@ -238,41 +235,41 @@ function on_command({
     })
   }
 
-  // functions to be run by hash_comparator
   function functions_list_from_object(object) {
     return [
       // case 1: forward command to previous
-      forward_command_function_object(previous, object),
+      {
+        function_: hit_previous,
+        argument: { event_: 'forward_' + event_, to_emit: object }
+      },
+
       // case 2: run command yourself
       {
         function_: run_destination_function_and_respond,
         argument: object
       },
+
       // case 3: tell next to run command
       {
-        function_: hit_socket,
+        function_: hit_next,
         argument: {
-          node: next,
           event_: event_ + '_reached_destination',
           to_emit: object
         }
       },
-      // case 4: forward command to next
-      forward_command_function_object(next, object)
-    ]
-  }
 
-  function forward_command_function_object(node, to_emit){
-    return {
-      function_: hit_socket,
-      argument: { node, event_: 'forward_' + event_, to_emit }
-    }
+      // case 4: forward command to next
+      {
+        function_: hit_next,
+        argument: { event_: 'forward_' + event_, to_emit: object }
+      }
+    ]
   }
 
   function run_destination_function_and_respond(object){
 
     response = destination_function(object)
-    hit_socket({
+    hit_node({
       node: object['initial_node'],
       event_: event_ + '_response',
       to_emit: response
@@ -323,7 +320,7 @@ function on_front_neighbours(socket) {
 
 function depart() {
 
-  hit_socket({
+  hit_node({
     node: next,
     event_: 'update_neighbour',
     to_emit: {
@@ -331,7 +328,7 @@ function depart() {
       new_neighbour_side: 'previous'
     }
   })
-  hit_socket({
+  hit_node({
     node: previous,
     event_: 'update_neighbour',
     to_emit: {
@@ -384,7 +381,7 @@ module.exports = {
   get_front_socket,
   show_neighbours,
   show_event,
-  hit_socket,
+  hit_node,
   join_general_case,
   common_to_all,
   depart

@@ -19,7 +19,7 @@ const {
   get_front_socket,
   show_neighbours,
   show_event,
-  hit_socket,
+  hit_node,
   join_general_case,
   common_to_all,
   depart
@@ -53,7 +53,7 @@ if (ME == BOOTSTRAP) {
       if (get_next() == BOOTSTRAP) {
         // Special case: only bootstrap is in the network, make 2 node network
 
-        hit_socket({
+        hit_node({
           node: joiner,
           event_: 'join_response',
           to_emit: { joiner_previous: BOOTSTRAP, joiner_next: BOOTSTRAP }
@@ -74,7 +74,7 @@ if (ME == BOOTSTRAP) {
 } else {
   // Non bootstrap code
 
-  hit_socket({
+  hit_node({
     node: BOOTSTRAP,
     event_: 'join',
     to_emit: { joiner:ME }
