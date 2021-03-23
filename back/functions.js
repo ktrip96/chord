@@ -2,14 +2,14 @@
 const sha1 = require('sha1')
 const client_io = require('socket.io-client')
 
-// vars for previous, next and their hashes
+// vars for previous/next and their hashes
 let previous = null
 let previous_hash = null
 let next = null
 let next_hash = null
 let my_key_value_pairs = {}
 
-// set next/previous functions
+// set previous/next functions
 function set_previous(new_previous) {
   previous = new_previous
   previous_hash = sha1(previous)
@@ -19,17 +19,25 @@ function set_next(new_next) {
   next_hash = sha1(next)
 }
 
-// get next/previous functions
+// get previous/next functions
 function get_previous() { return previous; }
 function get_next() { return next; }
 
-// show neighbours
+// debugging
 function show_neighbours() {
-  console.log('Neighbours: ' +  previous + ', ' + next )
+  console.log('\nNeighbours: ' +  previous + ', ' + next )
+}
+function show_event(event_, object) {
+  general_debugging('Event: ' + event_, object)
+}
+function general_debugging(string, object) {
+  console.log('\n'+ string)
+  console.log(object)
 }
 
+
 // hit node at particular event with the corresponding object
-function emit_to_node({ node, event_, to_emit }) {
+function hit_node({ node, event_, to_emit }) {
   socket = client_io.connect('http://' + node)
   socket.emit(event_, to_emit)
 }
@@ -37,50 +45,79 @@ function emit_to_node({ node, event_, to_emit }) {
 // join general case function
 function join_general(joiner, ME) {
 
-  f_list = [
-    emit_to_node,
-    between_me_and_that_guy,
-    emit_to_node,
-    between_me_and_that_guy
+  function forward_join_function_object(node){
+    return {
+      function_: hit_node,
+      argument: {
+        node,
+        event_: 'forward_join',
+        to_emit: { joiner }
+      }
+    }
+  }
+
+  function place_node_function_object(side){
+
+    if (side == 'previous')
+      that_guy = previous
+    else if (side == 'next')
+      that_guy = next
+
+    return {
+      function_: place_node,
+      argument: { joiner, that_guy, ME, side }
+    }
+
+  }
+
+  functions_list = [
+    forward_join_function_object(previous),
+    place_node_function_object('previous'),
+    place_node_function_object('next'),
+    forward_join_function_object(next)
   ]
 
-  arg_list = [
-    { node: previous, event_: 'join_forward', to_emit: { joiner } },
-    { joiner, that_guy: previous, ME, side: "previous" },
-    { node: next, event_: 'join_forward', to_emit: { joiner } },
-    { joiner, that_guy: next, ME, side: "next" }
-  ]
-
-  hash_comparator(joiner, ME, f_list, arg_list)
+  hash_comparator({ to_be_hashed: joiner, ME, functions_list })
 
 }
 
 // place new node between me and one of my neighbours
-function between_me_and_that_guy({ joiner, that_guy, ME, side }) {
+function place_node({ joiner, that_guy, ME, side }) {
 
   let joiner_previous
   let joiner_next
-  if (side == "previous") {
+
+  // set neighbour values for me and joiner
+  if (side == 'previous') {
+
     set_previous(joiner)
     joiner_previous = that_guy
     joiner_next = ME
-  } else if (side == "next") {
+
+  } else if (side == 'next') {
+
     set_next(joiner)
     joiner_previous = ME
     joiner_next = that_guy
-  } else 
-    console.log("OH NO you SHOULDN'T have seen that!")
 
-  emit_to_node({
+  } else 
+    console.log('OH NO you SHOULDN\'T have seen that!')
+
+  // send neighbour values to joiner
+  hit_node({
     node: joiner,
     event_: 'join_response',
     to_emit: { joiner_previous, joiner_next }
   })
 
-  emit_to_node({
+  // send joiner as new neighbour to that_guy
+  hit_node({
     node: that_guy,
     event_: 'update_neighbour',
-    to_emit: { new_neighbour: joiner, new_neighbour_side: oposite_of(side) }
+    to_emit: {
+      new_neighbour: joiner,
+      new_neighbour_side: oposite_of(side)
+    }
   })
 
   show_neighbours()
@@ -88,15 +125,25 @@ function between_me_and_that_guy({ joiner, that_guy, ME, side }) {
 }
 
 function on_update_neighbour(socket) {
-  socket.on('update_neighbour', ({ new_neighbour, new_neighbour_side }) => {
-    // On update neighbour, update one of my neighbours according to object 
 
-    if (new_neighbour_side == "previous")
+  socket.on('update_neighbour', ({
+                                   new_neighbour,
+                                   new_neighbour_side
+                                 }) => {
+    show_event('update_neighbour',{
+      new_neighbour,
+      new_neighbour_side
+    })
+
+    // Update one of my neighbours according to object 
+    if (new_neighbour_side == 'previous')
       set_previous(new_neighbour)
-    else if (new_neighbour_side == "next")
+    else if (new_neighbour_side == 'next')
       set_next(new_neighbour)
     else 
-      console.log('What is this madness? (' + new_neighbour_side + ')')
+      console.log(
+        'That\'s a weird side (' + new_neighbour_side + ')'
+      )
 
     show_neighbours()
 
@@ -104,96 +151,159 @@ function on_update_neighbour(socket) {
 
 }
 
-// flip side
 function oposite_of(side) {
 
-  if (side == "previous")
-    return "next"
-  if (side == "next")
-    return "previous"
+  if (side == 'previous')
+    return 'next'
+  if (side == 'next')
+    return 'previous'
 
-  console.log("FUCK! I don't know this side:", side)
+  console.log('FUCK! I don\'t know this side:', side)
 
 }
 
-// on_insert is on_command with insert_key_value as function called by the correct node
+// on_command with insert_key_value as destination_function
 function on_insert(socket, ME) {
+
+  function insert_key_value({ key, value }) {
+    console.log('Key hash:', sha1(key))
+    my_key_value_pairs = {...my_key_value_pairs, [key]:value }
+    return { response_message: 'All good, I added the pair ;)' }
+  }
+
   on_command({
     socket,
     event_: 'insert',
-    case2func: insert_key_value,
-    case4event: 'insert_key_value',
+    destination_function: insert_key_value,
     ME
   })
+
 }
 
-function insert_key_value({ key, value }) {
-  console.log('This pair is for me:', { key, value })
-  console.log('Key hash:', sha1(key))
-  my_key_value_pairs = {...my_key_value_pairs, [key]:value }
-}
-
-// on_query is on_command with return_query_value as function called by the correct node
+// on_command with return_query_value as destination_function
 function on_query(socket, ME) {
+
+  function return_query_value({ key }) {
+    return {
+      response_message: 'Here\'s the value you asked for sir:',
+      value: my_key_value_pairs[key]
+    }
+  }
+
   on_command({
     socket,
     event_: 'query',
-    case2func: return_query_value,
-    case4event: 'return_query_value',
+    destination_function: return_query_value,
     ME
   })
+
 }
 
-function return_query_value({ key }) {
-  console.log('Here\'s everything:', my_key_value_pairs)
-  console.log({ key })
-  console.log('Here\'s the value you asked for sir:', my_key_value_pairs[key])
-}
-
-// on_delete is on_command with delete_pair as function called by the correct node
+// on_command with delete_pair as destination_function
 function on_delete(socket, ME) {
+
+  function delete_pair({ key }) {
+    console.log('Here\'s everything:', my_key_value_pairs)
+    console.log('Deleting pair with key:', key)
+    delete my_key_value_pairs[key]
+    console.log(
+      'Here\'s everything after deletion:',
+      my_key_value_pairs
+    )
+    return { response_message: 'All good, I deleted the pair ;)' }
+  }
+
   on_command({
     socket,
     event_: 'delete',
-    case2func: delete_pair,
-    case4event: 'delete_pair',
+    destination_function: delete_pair,
     ME
   })
+
 }
 
-function delete_pair({ key }) {
-  console.log('Here\'s everything:', my_key_value_pairs)
-  console.log('Deleting pair with key:', key)
-  delete my_key_value_pairs[key]
-  console.log('Here\'s everything after deletion:', my_key_value_pairs)
-}
+// structure of commands: forward the command or run it yourself
+function on_command({
+    socket,
+    event_,
+    destination_function,
+    ME
+  }) {
 
+  function call_hash_comparator(event_object){
+    hash_comparator({
+      to_be_hashed: event_object['key'],
+      ME,
+      functions_list: functions_list_from_object(event_object)
+    })
+  }
 
-// on_command is the structure of any command where you forward the command or run it yourself
-function on_command({ socket, event_, case2func, case4event, ME }) {
-
-  socket.on(event_, (event_object) => {
-    console.log({ event_, event_object, case4event })
-
-    f_list = [
-      emit_to_node,
-      case2func,
-      emit_to_node,
-      emit_to_node
+  // functions to be run by hash_comparator
+  function functions_list_from_object(object) {
+    return [
+      // case 1: forward command to previous
+      forward_command_function_object(previous, object),
+      // case 2: run command yourself
+      {
+        function_: run_destination_function_and_respond,
+        argument: object
+      },
+      // case 3: tell next to run command
+      {
+        function_: hit_node,
+        argument: {
+          node: next,
+          event_: event_ + '_reached_destination',
+          to_emit: object
+        }
+      },
+      // case 4: forward command to next
+      forward_command_function_object(next, object)
     ]
+  }
 
-    arg_list = [
-      { node: previous, event_, to_emit: event_object },
-      event_object,
-      { node: next, event_, to_emit: event_object },
-      { node: next, event_: case4event, to_emit: event_object },
-    ]
+  function forward_command_function_object(node, to_emit){
+    return {
+      function_: hit_node,
+      argument: { node, event_: 'forward_' + event_, to_emit }
+    }
+  }
 
-    hash_comparator(event_object['key'], ME, f_list, arg_list)
+  function run_destination_function_and_respond(object){
+
+    response = destination_function(object)
+    hit_node({
+      node: object['initial_node'],
+      event_: event_ + '_response',
+      to_emit: response
+    })
+
+  }
+
+  socket.on('initial_' + event_, (event_initial_object) => {
+    show_event('initial_' + event_, event_initial_object)
+
+    // add your address to the object and call hash comparator
+    let event_object = { ...event_initial_object, initial_node:ME }
+
+    call_hash_comparator(event_object)
+
   })
 
-  socket.on(case4event, (case4event_object) => {
-    case2func(case4event_object)
+  socket.on('forward_' + event_, (event_object) => {
+    show_event('forward_' + event_, event_object)
+
+    call_hash_comparator(event_object)
+  })
+
+  socket.on(event_ + '_reached_destination', (event_object) => {
+    show_event(event_ + '_reached_destination', event_object)
+
+    run_destination_function_and_respond(event_object)
+  })
+
+  socket.on(event_ + '_response', (event_object) => {
+    show_event(event_ + '_response', event_object)
   })
 
 }
@@ -201,23 +311,32 @@ function on_command({ socket, event_, case2func, case4event, ME }) {
 // depart just tells neighbours to update their neighbours
 function depart() {
 
-  emit_to_node({
+  hit_node({
     node: next,
     event_: 'update_neighbour',
-    to_emit: { new_neighbour: previous, new_neighbour_side: "previous" }
+    to_emit: {
+      new_neighbour: previous,
+      new_neighbour_side: 'previous'
+    }
   })
-  emit_to_node({
+  hit_node({
     node: previous,
     event_: 'update_neighbour',
-    to_emit: { new_neighbour: next, new_neighbour_side: "next" }
+    to_emit: {
+      new_neighbour: next,
+      new_neighbour_side: 'next'
+    }
   })
   setTimeout(() => process.exit(),1000)
 
 } 
 
-// hash_comparator compares a hash with hashes of this node, next node and previous node
-//   to determine which fucntion from the f_list to run
-function hash_comparator(to_be_hashed, ME, f_list, arg_list) {
+// hash_comparator compares a hash with hashes of:
+//   - this node
+//   - next
+//   - previous
+// to determine which fucntion from the functions_list to run
+function hash_comparator({ to_be_hashed, ME, functions_list }) {
 
   let hash = sha1(to_be_hashed)
   let MY_HASH = sha1(ME)
@@ -225,16 +344,16 @@ function hash_comparator(to_be_hashed, ME, f_list, arg_list) {
   if (hash < MY_HASH) {
 
     if (hash < previous_hash && MY_HASH > previous_hash)
-      f_list[0](arg_list[0])
+      functions_list[0]['function_'](functions_list[0]['argument'])
     else
-      f_list[1](arg_list[1])
+      functions_list[1]['function_'](functions_list[1]['argument'])
 
   } else {
 
-    if (hash > next_hash && MY_HASH < next_hash)
-      f_list[2](arg_list[2])
+    if (hash < next_hash || MY_HASH > next_hash)
+      functions_list[2]['function_'](functions_list[2]['argument'])
     else
-      f_list[3](arg_list[3])
+      functions_list[3]['function_'](functions_list[3]['argument'])
 
   } 
 
@@ -242,12 +361,10 @@ function hash_comparator(to_be_hashed, ME, f_list, arg_list) {
 
 // Events common to all nodes
 function common_to_all(socket, ME) {
-
     on_update_neighbour(socket)
     on_insert(socket, ME)
     on_query(socket, ME)
     on_delete(socket, ME)
-
 }
 
 module.exports = {
@@ -256,7 +373,8 @@ module.exports = {
   get_previous,
   get_next,
   show_neighbours,
-  emit_to_node,
+  show_event,
+  hit_node,
   join_general,
   common_to_all,
   depart
