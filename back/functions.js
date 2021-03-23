@@ -27,6 +27,7 @@ function set_next(new_next) {
 
 function get_previous() { return previous; }
 function get_next() { return next; }
+function get_front_socket() { return front_socket; }
 
 // debugging
 function show_neighbours() {
@@ -367,7 +368,7 @@ function hash_comparator({ to_be_hashed, ME, functions_list }) {
 
 // Events common to all nodes
 function common_to_all(socket, ME) {
-    on_front(socket)
+    on_front_connection(socket)
     on_front_neighbours(socket)
     on_update_neighbour(socket)
     on_insert(socket, ME)
@@ -380,6 +381,7 @@ module.exports = {
   set_next,
   get_previous,
   get_next,
+  get_front_socket,
   show_neighbours,
   show_event,
   hit_socket,

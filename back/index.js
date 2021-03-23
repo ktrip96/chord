@@ -48,7 +48,7 @@ if (ME == BOOTSTRAP) {
 
       show_event('join', { joiner })
 
-      get_front_socket().emit('front_join', { joiner })
+      // get_front_socket().emit('front_join', { joiner })
 
       if (get_next() == BOOTSTRAP) {
         // Special case: only bootstrap is in the network, make 2 node network
