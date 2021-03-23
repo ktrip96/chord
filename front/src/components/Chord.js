@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Button } from '@chakra-ui/button'
+import { Alert, AlertIcon } from '@chakra-ui/react'
 import bootstrap from '../images/Bootstrap.png'
 import io from 'socket.io-client'
 import styled from 'styled-components'
@@ -11,7 +12,7 @@ import Menu from './Menu'
 const GeneralGrid = styled.div`
   display: grid;
   width: 100%;
-  height: 98vh;
+  height: 99vh;
   grid-template-areas:
     'h h h h h m'
     'g g g g g m'
@@ -137,9 +138,15 @@ export default function Chord() {
         <Description>
           An implementation of a Distributed Hashing Table
         </Description>
+        <Alert status='info' style={{ fontSize: '10px', paddingLeft: '500px' }}>
+          <AlertIcon />
+          {`You are handling requests for ${serverPort}`}
+        </Alert>
       </HeaderGrid>
+
       <GraphGrid>
         {/* {chordRender} */}
+
         <Graph
           ip={serverPort}
           setServerPort={setServerPort}
@@ -151,6 +158,7 @@ export default function Chord() {
         <Menu
           ip={serverPort}
           setPortArray={setPortArray}
+          setServerPort={setServerPort}
           portArray={portArray}
         />
       </MenuGrid>

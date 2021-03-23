@@ -10,6 +10,19 @@ const nodeStyle = {
   borderRadius: '40%',
 }
 
+// splitArray splits an array to
+// a nodeArray and an edgeArray
+const splitArray = (elements) => {
+  const nodeArray = []
+  const edgeArray = []
+  elements.map((item) => {
+    if (item.src == undefined) nodeArray.push(item)
+    else edgeArray.push(item)
+    return 0
+  })
+  return { nodeArray, edgeArray }
+}
+
 // η elementTemplate παίρνει μία μεταβλητή (ip, η οποία έρχεται με κάθε join)
 // και κάνει κάνει construct το json template του κάθε element.
 const elementTemplate = (ip) => {
@@ -78,55 +91,44 @@ export default function Graph({ ip, setPortArray, setServerPort, elements }) {
   // καινουργιος κομβος στο elements
   // θα ειναι μεσα σε μια useEffect με dependency το elements
   const handleAddNode = () => {
-    //* setIsLoading true
-
-    // Add the new element to the state
-    // αυτό το βήμα θα γίνει από τα sockets.
-    console.log('elements pure:', elements)
+    // οι επόμενες 2 γραμμές θα γίνουν από τα sockets.
     let random = Math.floor(Math.random() * 6) + 1
-    // setPortArray((elements) => [...elements, elementTemplate(random + 5000)])
     const testArray = [...elements, elementTemplate(random + 5000)]
 
-    console.log('testArray is:', testArray)
+    // Παίρνω όλα τα json που αφορούν nodes και τα βάζω στον πίνακα nodeArray
+    const nodeArray = splitArray(testArray).nodeArray
+    // αντίστοιχα για τα edgeArray
+    const edgeArray = splitArray(testArray).edgeArray
 
-    //*Wait for state to finish and calculate the correct coordinates for our nodes
+    // βρίσκω τις σωστές συντεταγμένες των nodes
     let coordinates = []
-
     coordinates = coordinatesCalculator(testArray.length, 150)
-    // * For each node in the state
 
+    // τις κάνω update στον nodeArray
     const updatedPortArray = coordinates.map((item, i) => {
       return {
-        ...testArray[i],
+        ...nodeArray[i],
         position: item,
       }
     })
 
-    console.log('New elements:', updatedPortArray)
-    setPortArray(updatedPortArray)
+    // κάνω merge των καινούργιο node Array με τον edge
+    const finalArray = updatedPortArray.concat(edgeArray)
 
-    //   const convertToObjAndSetData = (arrWithNames) => {
-    //     const newArrayWithObj = arrWithNames.map( (arrName, i) => {
-    //         return {
-    //             ...data[i], <---- so here we copy in the obj from Data,
-    //             name: arrName, <------ here we update the value we wanna change.
-    //         }
-    //     })
-    //     setData(newArrayWithObj)
-    // }
-    //* update Edges
-    //* setIsLoading false
+    // Κάνω update το state
+    setPortArray(finalArray)
+    // TODO
+    // - wait bootstrap to give join IP
+    // - get IP's neighbours
+    // - update Edges
   }
 
   return (
     <div
       style={{
-        height: 720,
+        height: 730,
       }}
     >
-      {/* for development reasons */}
-      <p>ip: {ip}</p>
-      {/* <button onClick={() => alert('add nod')}> Add Node</button> */}
       <button onClick={handleAddNode}> Add Node</button>
 
       <ReactFlow

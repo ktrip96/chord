@@ -33,6 +33,7 @@ export default function Functionalities({
   ip = 5000,
   setPortArray,
   portArray,
+  setServerPort,
 }) {
   const [showQuery, setShowQuery] = useState(false)
   const [queryValue, setQueryValue] = useState('')
@@ -154,8 +155,16 @@ export default function Functionalities({
             let result = 'You can not remove the Bootstrap Node'
             // eslint-disable-next-line
             if (ip != 5000) {
-              const newPortArray = portArray.filter((item) => item.ip !== ip)
+              // eslint-disable-next-line eqeqeq
+              const newPortArray = portArray.filter((item) => item.id != ip)
+              // πάρε τους nodes, και διάγραψε αυτόν που πρέπει να φύγει
+
+              // πάρε τα edges, διάγραψε αυτά που έχουν είτε src είτε dest αυτόν που πρέπει να φύγει
+              // και κράτα κάπου τους παλιούς του γείτονες.
+              // φτιάξε ένα καινούργιο edge με αυτούς τους γείτονες.
+
               setPortArray(newPortArray)
+              setServerPort(5000)
               result = `The ${ip} has left the Chord `
             }
 
