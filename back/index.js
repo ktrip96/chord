@@ -1,3 +1,4 @@
+// required
 const express = require('express')
 const socketio = require('socket.io')
 const http = require('http')
@@ -11,6 +12,7 @@ const io = socketio(server, {
   },
 })
 
+// my consts
 const {
   set_previous,
   set_next,
@@ -34,10 +36,8 @@ const MY_PORT = ME.slice(separator + 1)
 const MY_HASH = sha1(ME)
 console.log('My hash:', MY_HASH)
 
-
-// Juice
 if (ME == BOOTSTRAP) {
-  // Bootstrap code
+  // Bootstrap code: Initially next = previous = BOOTSTRAP
 
   set_previous(BOOTSTRAP)
   set_next(BOOTSTRAP)
@@ -45,6 +45,7 @@ if (ME == BOOTSTRAP) {
   io.on('connection', (socket) => {
 
     socket.on('join', ({ joiner }) => {
+      // Join code
 
       show_event('join', { joiner })
 
@@ -56,7 +57,7 @@ if (ME == BOOTSTRAP) {
         hit_node({
           node: joiner,
           event_: 'join_response',
-          to_emit: { joiner_previous: BOOTSTRAP, joiner_next: BOOTSTRAP }
+          object: { joiner_previous: BOOTSTRAP, joiner_next: BOOTSTRAP }
         })
 
         set_previous(joiner)
@@ -64,20 +65,23 @@ if (ME == BOOTSTRAP) {
         show_neighbours()
 
       } else {
+
         join_general_case(joiner, ME)
+
       }
+
     })
 
     common_to_all(socket, ME)
 
   })
 } else {
-  // Non bootstrap code
+  // Non bootstrap code: Begin by asking BOOTSTRAP to join
 
   hit_node({
     node: BOOTSTRAP,
     event_: 'join',
-    to_emit: { joiner:ME }
+    object: { joiner:ME }
   })
 
   io.on('connection', (socket) => {

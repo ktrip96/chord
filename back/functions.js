@@ -1,6 +1,8 @@
+// required
 const sha1 = require('sha1')
 const client_io = require('socket.io-client')
 
+// globals
 let front_socket
 let previous
 let previous_hash
@@ -10,6 +12,7 @@ let next_hash
 let next_socket
 let my_key_value_pairs = {}
 
+// set functions
 function set_previous(new_previous) {
   previous = new_previous
   previous_hash = sha1(previous)
@@ -25,80 +28,58 @@ function set_next(new_next) {
   next_socket = client_io.connect('http://' + new_next)
 }
 
-function get_previous() { return previous; }
-function get_next() { return next; }
-function get_front_socket() { return front_socket; }
+// get functions
+function get_previous() { return previous }
+function get_next() { return next }
+function get_front_socket() { return front_socket }
 
-// debugging
-function show_neighbours() {
-  console.log('\nNeighbours: ' +  previous + ', ' + next )
-}
-function show_event(event_, object) {
-  general_debugging('Event: ' + event_, object)
-}
+// debugging functions
+function show_neighbours() { console.log('\nNeighbours: ' +  previous + ', ' + next ) }
+function show_event(event_, object) { general_debugging('Event: ' + event_, object) }
 function general_debugging(string, object) {
   console.log('\n'+ string)
   console.log(object)
 }
 
-function hit_node({ node, event_, to_emit }) {
+// socket communication
+function hit_node({ node, event_, object }) {
   socket = client_io.connect('http://' + node)
-  socket.emit(event_, to_emit)
+  socket.emit(event_, object)
 }
-function hit_previous({ event_, to_emit }) {
-  previous_socket.emit(event_, to_emit)
-}
-function hit_next({ event_, to_emit }) {
-  next_socket.emit(event_, to_emit)
-}
+function hit_previous({ event_, object }) { previous_socket.emit(event_, object) }
+function hit_next({ event_, object }) { next_socket.emit(event_, object) }
 
+// join
 function join_general_case(joiner, ME) {
-
   functions_list = [
-    {
-      function_: hit_previous,
-      argument: { event_: 'forward_join', to_emit: { joiner } }
-    },
-    {
-      function_: place_node,
-      argument: {
-        joiner, ME, that_guy: previous, side: 'previous'
-      }
-    },
-    {
-      function_: place_node,
-      argument: {
-        joiner, ME, that_guy: next, side: 'next'
-      }
-    },
-    {
-      function_: hit_next,
-      argument: { event_: 'forward_join', to_emit: { joiner } }
-    }
+    { function_: hit_previous, argument: { event_: 'forward_join', object: { joiner } } },
+    { function_: place_node,   argument: { joiner, ME, side: 'previous' }               },
+    { function_: place_node,   argument: { joiner, ME, side: 'next' }                   },
+    { function_: hit_next,     argument: { event_: 'forward_join', object: { joiner } } }
   ]
-
   hash_comparator({ to_be_hashed: joiner, ME, functions_list })
-
 }
 
-// place new node between me and one of my neighbours
-function place_node({ joiner, ME, that_guy, side }) {
-
+function place_node({ joiner, ME, side }) {
   let joiner_previous
   let joiner_next
 
   // set neighbour values for me and joiner
   if (side == 'previous') {
-
-    set_previous(joiner)
-    joiner_previous = that_guy
+    joiner_previous = previous
     joiner_next = ME
 
+    hit_previous({ event_: 'update_neighbour', object: { neighbour: joiner, neighbour_side: 'next' } })
+
+    set_previous(joiner)
+
   } else if (side == 'next') {
+    joiner_previous = ME
+    joiner_next = next
+
+    hit_next({ event_: 'update_neighbour', object: { neighbour: joiner, neighbour_side: 'previous' } })
 
     set_next(joiner)
-    joiner_previous = ME
-    joiner_next = that_guy
 
   } else 
     console.log('OH NO you SHOULDN\'T have seen that!')
@@ -107,61 +88,33 @@ function place_node({ joiner, ME, that_guy, side }) {
   hit_node({
     node: joiner,
     event_: 'join_response',
-    to_emit: { joiner_previous, joiner_next }
-  })
-
-  // send joiner as new neighbour to that_guy
-  hit_node({
-    node: that_guy,
-    event_: 'update_neighbour',
-    to_emit: {
-      new_neighbour: joiner,
-      new_neighbour_side: oposite_of(side)
-    }
+    object: { joiner_previous, joiner_next }
   })
 
   show_neighbours()
-
 }
 
 function on_update_neighbour(socket) {
-
-  socket.on('update_neighbour', ({
-                                   new_neighbour,
-                                   new_neighbour_side
-                                 }) => {
+  socket.on('update_neighbour', ({ neighbour, neighbour_side }) => {
     show_event('update_neighbour',{
-      new_neighbour,
-      new_neighbour_side
+      neighbour,
+      neighbour_side
     })
 
     // Update one of my neighbours according to object 
-    if (new_neighbour_side == 'previous')
-      set_previous(new_neighbour)
-    else if (new_neighbour_side == 'next')
-      set_next(new_neighbour)
+    if (neighbour_side == 'previous')
+      set_previous(neighbour)
+    else if (neighbour_side == 'next')
+      set_next(neighbour)
     else 
       console.log(
-        'That\'s a weird side (' + new_neighbour_side + ')'
+        'That\'s a weird side (' + neighbour_side + ')'
       )
-
     show_neighbours()
-
   })
-
 }
 
-function oposite_of(side) {
-
-  if (side == 'previous')
-    return 'next'
-  if (side == 'next')
-    return 'previous'
-
-  console.log('FUCK! I don\'t know this side:', side)
-
-}
-
+// insert
 function on_insert(socket, ME) {
 
   function insert_key_value({ key, value }) {
@@ -240,7 +193,7 @@ function on_command({
       // case 1: forward command to previous
       {
         function_: hit_previous,
-        argument: { event_: 'forward_' + event_, to_emit: object }
+        argument: { event_: 'forward_' + event_, object: object }
       },
 
       // case 2: run command yourself
@@ -254,14 +207,14 @@ function on_command({
         function_: hit_next,
         argument: {
           event_: event_ + '_reached_destination',
-          to_emit: object
+          object: object
         }
       },
 
       // case 4: forward command to next
       {
         function_: hit_next,
-        argument: { event_: 'forward_' + event_, to_emit: object }
+        argument: { event_: 'forward_' + event_, object: object }
       }
     ]
   }
@@ -272,7 +225,7 @@ function on_command({
     hit_node({
       node: object['initial_node'],
       event_: event_ + '_response',
-      to_emit: response
+      object: response
     })
 
   }
@@ -319,48 +272,34 @@ function on_front_neighbours(socket) {
 }
 
 function depart() {
-
   hit_node({
     node: next,
     event_: 'update_neighbour',
-    to_emit: {
-      new_neighbour: previous,
-      new_neighbour_side: 'previous'
-    }
+    object: { neighbour: previous, neighbour_side: 'previous' }
   })
   hit_node({
     node: previous,
     event_: 'update_neighbour',
-    to_emit: {
-      new_neighbour: next,
-      new_neighbour_side: 'next'
-    }
+    object: { neighbour: next, neighbour_side: 'next' }
   })
   setTimeout(() => process.exit(),1000)
-
 } 
 
 function hash_comparator({ to_be_hashed, ME, functions_list }) {
-
   let hash = sha1(to_be_hashed)
   let MY_HASH = sha1(ME)
 
   if (hash < MY_HASH) {
-
     if (hash < previous_hash && MY_HASH > previous_hash)
       functions_list[0]['function_'](functions_list[0]['argument'])
     else
       functions_list[1]['function_'](functions_list[1]['argument'])
-
   } else {
-
     if (hash < next_hash || MY_HASH > next_hash)
       functions_list[2]['function_'](functions_list[2]['argument'])
     else
       functions_list[3]['function_'](functions_list[3]['argument'])
-
   } 
-
 }
 
 // Events common to all nodes
