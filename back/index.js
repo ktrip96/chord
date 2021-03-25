@@ -7,7 +7,7 @@ const sha1 = require('sha1')
 
 const {
   set_previous, set_next, set_front_socket,
-  get_next, get_front_socket,
+  get_previous, get_next, get_front_socket,
   show_neighbours, show_event, hit_node
 } = require('./globals.js')
 const { join_general_case, on_update_neighbour, depart } = require('./join_depart.js')
@@ -86,7 +86,7 @@ function on_front_connection(socket) {
   socket.on('front_connection', () => {
     show_event('front_connection', {})
     set_front_socket(socket)
-    socket.emit('front_connection_response', { previous, next })
+    socket.emit('front_connection_response', { previous: get_previous() , next: get_next() })
   })
 }
 
