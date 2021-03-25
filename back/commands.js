@@ -4,7 +4,8 @@ const {
   show_event,
   hit_node,
   hit_previous,
-  hit_next
+  hit_next,
+  get_front_socket
 } = require('./globals.js')
 
 
@@ -79,6 +80,7 @@ function on_command({ socket, event_, destination_function, ME }) {
 
   socket.on(event_ + '_response', (event_object) => {
     show_event(event_ + '_response', event_object)
+    get_front_socket().emit(event_ + '_response', event_object)
   })
 }
 

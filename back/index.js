@@ -5,7 +5,11 @@ const http = require('http')
 const client_io = require('socket.io-client')
 const sha1 = require('sha1')
 
-const { set_previous, set_next, get_next, show_neighbours, show_event, hit_node } = require('./globals.js')
+const {
+  set_previous, set_next, set_front_socket,
+  get_next, get_front_socket,
+  show_neighbours, show_event, hit_node
+} = require('./globals.js')
 const { join_general_case, on_update_neighbour, depart } = require('./join_depart.js')
 const { command_events } = require('./commands.js')
 
@@ -21,8 +25,6 @@ const MY_PORT = ME.slice(separator + 1)
 const MY_HASH = sha1(ME)
 console.log('My hash:', MY_HASH)
 
-let front_socket
-
 if (ME == BOOTSTRAP) {
   // Bootstrap code: Initially next = previous = BOOTSTRAP
 
@@ -34,7 +36,7 @@ if (ME == BOOTSTRAP) {
     socket.on('join', ({ joiner }) => {
       show_event('join', { joiner })
 
-      // front_socket.emit('front_join', { joiner })
+      // get_front_socket().emit('front_join', { joiner })
       if (get_next() == BOOTSTRAP) {
         // Special case: only bootstrap is in the network, make 2 node network
         hit_node({
@@ -83,7 +85,7 @@ if (ME == BOOTSTRAP) {
 function on_front_connection(socket) {
   socket.on('front_connection', () => {
     show_event('front_connection', {})
-    front_socket = socket
+    set_front_socket(socket)
     socket.emit('front_connection_response', { previous, next })
   })
 }
