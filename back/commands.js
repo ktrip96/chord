@@ -10,7 +10,7 @@ const { hash_comparator } = require('./hash_comparator.js')
 
 let my_key_value_pairs = {}
 function show_key_value_pairs(){
-  console.log('Key-Value pairs:', my_key_value_pairs)
+  console.log('\nKey-Value pairs:', my_key_value_pairs)
 }
 
 function on_insert(socket, ME, REPLICATION_FACTOR) {
@@ -19,7 +19,7 @@ function on_insert(socket, ME, REPLICATION_FACTOR) {
 
 function insert_key_value({ key, value }) {
   show_key_value_pairs()
-  console.log('Adding pair with key:', key)
+  console.log('\nAdding pair with key:', key)
   console.log('Key hash:', sha1(key))
   my_key_value_pairs = {...my_key_value_pairs, [key]:value }
   show_key_value_pairs()
@@ -43,10 +43,10 @@ function on_delete(socket, ME, REPLICATION_FACTOR) {
 }
 
 function delete_pair({ key }) {
+  show_key_value_pairs()
   if (my_key_value_pairs[key] == null)
     return { response_message: 'No such key' }
-  show_key_value_pairs()
-  console.log('Deleting pair with key:', key)
+  console.log('\nDeleting pair with key:', key)
   delete my_key_value_pairs[key]
   show_key_value_pairs()
   return { response_message: 'All good, I deleted the pair ;)' }
@@ -66,10 +66,7 @@ function on_command({ socket, event_, function_, ME, REPLICATION_FACTOR }) {
   socket.on(event_ + '_reached_destination', (object) => {
     show_event(event_ + '_reached_destination', object)
 
-    if (REPLICATION_FACTOR == 1)
-      function_and_response(object)
-    else
-      hit_next({ event_:'replicate_' + event_, object: { argument: object, n: REPLICATION_FACTOR - 1 } })
+    replication_and_response(object)
   })
 
   socket.on(event_ + '_response', (object) => {
@@ -82,19 +79,29 @@ function on_command({ socket, event_, function_, ME, REPLICATION_FACTOR }) {
       to_be_hashed: object['key'],
       ME,
       functions_list: [
-        { function_: hit_previous,          argument: { event_: 'forward_' + event_, object }             },
-        { function_: function_and_response, argument: object                                              },
-        { function_: hit_next,              argument: { event_: event_ + '_reached_destination', object } },
-        { function_: hit_next,              argument: { event_: 'forward_' + event_, object }             }
+        { function_: hit_previous,             argument: { event_: 'forward_' + event_, object }             },
+        { function_: replication_and_response, argument: object                                              },
+        { function_: hit_next,                 argument: { event_: event_ + '_reached_destination', object } },
+        { function_: hit_next,                 argument: { event_: 'forward_' + event_, object }             }
       ]
     })
   }
 
-  function function_and_response(object){
+  function replication_and_response(object){
     response = function_(object)
-    hit_node({
-      node: object['initial_node'], event_: event_ + '_response', object: { ...response, destination_node:ME }
-    })
+    if (REPLICATION_FACTOR == 1)
+      hit_node({
+        node: object['initial_node'], event_: event_ + '_response', object: { ...response, destination_node:ME }
+      })
+    else
+      hit_next({
+        event_:'replicate_' + event_,
+        object: {
+          argument: object,
+          n: REPLICATION_FACTOR - 1,
+          replication_initial_node: ME
+        }
+      })
   }
 }
 

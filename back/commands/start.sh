@@ -1,3 +1,3 @@
 #!/bin/bash
 
-npm start 1 192.168.1.71:$1
+npm start 2 192.168.1.71:$1
