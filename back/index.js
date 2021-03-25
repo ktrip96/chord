@@ -12,12 +12,14 @@ const {
 } = require('./globals.js')
 const { join_general_case, on_update_neighbour, depart } = require('./join_depart.js')
 const { command_events } = require('./commands.js')
+const { replicate_events } = require('./replication.js')
 
 // consts
 const server = http.createServer(express())
 const io = socketio(server, { cors: { origin: '*' } })
 
-const ME = process.argv[2]
+const REPLICATION_FACTOR = process.argv[2]
+const ME = process.argv[3]
 const BOOTSTRAP = '192.168.1.71:5000'
 
 const separator = ME.indexOf(':')
@@ -52,7 +54,9 @@ if (ME == BOOTSTRAP) {
 
     on_update_neighbour(socket)
 
-    command_events(socket, ME)
+    command_events(socket, ME, REPLICATION_FACTOR)
+
+    replicate_events(socket)
   })
 } else {
   // Non bootstrap code: Begin by asking BOOTSTRAP to join
@@ -78,7 +82,9 @@ if (ME == BOOTSTRAP) {
 
     on_update_neighbour(socket)
 
-    command_events(socket, ME)
+    command_events(socket, ME, REPLICATION_FACTOR)
+
+    replicate_events(socket)
   })
 }
 

@@ -1,9 +1,6 @@
 const sha1 = require('sha1')
 
-const {
-  get_previous_hash,
-  get_next_hash
-} = require('./globals.js')
+const { get_previous_hash, get_next_hash } = require('./globals.js')
 
 function hash_comparator({ to_be_hashed, ME, functions_list }) {
   let hash = sha1(to_be_hashed)
