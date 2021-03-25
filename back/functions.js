@@ -1,6 +1,7 @@
 // required
 const sha1 = require('sha1')
 const client_io = require('socket.io-client')
+const FRONT = '192.168.1.72:3000'
 
 // globals
 let front_socket
@@ -261,13 +262,9 @@ function on_command({
 
 function on_front_connection(socket) {
   socket.on('front_connection', () => {
+    show_event('front_connection', {})
     front_socket = socket
-  })
-}
-
-function on_front_neighbours(socket) {
-  socket.on('front_neighbours', () => {
-    socket.emit('front_neighbours_response', { previous, next })
+    socket.emit('front_connection_response', { previous, next })
   })
 }
 
@@ -305,7 +302,6 @@ function hash_comparator({ to_be_hashed, ME, functions_list }) {
 // Events common to all nodes
 function common_to_all(socket, ME) {
     on_front_connection(socket)
-    on_front_neighbours(socket)
     on_update_neighbour(socket)
     on_insert(socket, ME)
     on_query(socket, ME)

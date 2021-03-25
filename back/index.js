@@ -28,10 +28,9 @@ const {
 } = require('./functions.js')
 
 const ME = process.argv[2]
-const BOOTSTRAP = 'localhost:3000'
+const BOOTSTRAP = '192.168.1.71:5000'
 
 const separator = ME.indexOf(':')
-const MY_IP = ME.slice(0, separator)
 const MY_PORT = ME.slice(separator + 1)
 const MY_HASH = sha1(ME)
 console.log('My hash:', MY_HASH)
@@ -45,29 +44,22 @@ if (ME == BOOTSTRAP) {
   io.on('connection', (socket) => {
 
     socket.on('join', ({ joiner }) => {
-      // Join code
-
       show_event('join', { joiner })
 
       // get_front_socket().emit('front_join', { joiner })
 
       if (get_next() == BOOTSTRAP) {
         // Special case: only bootstrap is in the network, make 2 node network
-
         hit_node({
           node: joiner,
           event_: 'join_response',
           object: { joiner_previous: BOOTSTRAP, joiner_next: BOOTSTRAP }
         })
-
         set_previous(joiner)
         set_next(joiner)
         show_neighbours()
-
       } else {
-
         join_general_case(joiner, ME)
-
       }
 
     })
@@ -88,22 +80,18 @@ if (ME == BOOTSTRAP) {
 
     socket.on('join_response', ({ joiner_previous, joiner_next }) => {
       show_event('join_response', { joiner_previous, joiner_next })
-
       set_previous(joiner_previous)
       set_next(joiner_next)
-
       show_neighbours()
     })
 
     socket.on('forward_join', ({ joiner }) => {
       show_event('forward_join', { joiner })
-
       join_general_case(joiner, ME)
     })
 
     socket.on('depart', () => {
       show_event('depart', {})
-
       depart()
     })
 
@@ -114,5 +102,5 @@ if (ME == BOOTSTRAP) {
 }
 
 server.listen(MY_PORT, () => {
-  console.log(`Server has started on port:${MY_PORT}`)
+  console.log(`Server has started on: ${ME}`)
 })

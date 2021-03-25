@@ -1,3 +1,3 @@
 #!/bin/bash
 
-npm start localhost:$1
+npm start 192.168.1.71:$1
