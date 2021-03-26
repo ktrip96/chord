@@ -23,10 +23,10 @@ length = len(ips)
 while(len(insert)!=0):
     random  = randrange(length)
     key  =  "'"+ insert[0][0] + "'"
-    string = "node event.js " + ips[random][0] +\
+    string = "node /home/gnostis/chord/back/commands/event.js " + ips[random][0] +\
     ":" + ips[random][1] + " insert " + key + " " + insert[0][1]
-    print(string)
-   # subprocess.call([string])
+    #print(string)
+    subprocess.call([string])
     insert.pop(0)
 
 
