@@ -9,8 +9,8 @@ if (event_ == 'depart')
 else {
   object = { key: process.argv[4] }
   if (event_ == 'insert')
-    object =
-  socket.emit('initial_' + event_, { key })
+    object = { ...object, value: process.argv[5] }
+  socket.emit('initial_' + event_, object)
 }
 
 setTimeout(() => process.exit(),1000)
