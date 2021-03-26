@@ -20,17 +20,9 @@ function add_pair({ key, value }){
 function get_my_key_value_pairs(){ return my_key_value_pairs }
 function set_my_key_value_pairs(pairs){ my_key_value_pairs = pairs }
 
-function on_insert(socket, ME, REPLICATION_FACTOR) {
-  on_command({ socket, event_: 'insert', function_: insert_key_value, ME, REPLICATION_FACTOR })
-}
-
 function insert_key_value({ key, value }) {
   add_pair({ key, value })
   return { response_message: 'All good, I added the pair ;)' }
-}
-
-function on_query(socket, ME, REPLICATION_FACTOR) {
-  on_command({ socket, event_: 'query', function_: return_query_value, ME, REPLICATION_FACTOR })
 }
 
 function return_query_value({ key }) {
@@ -39,10 +31,6 @@ function return_query_value({ key }) {
     response_message: 'Here\'s the value you asked for sir:',
     value: my_key_value_pairs[key]
   }
-}
-
-function on_delete(socket, ME, REPLICATION_FACTOR) {
-  on_command({ socket, event_: 'delete', function_: delete_pair, ME, REPLICATION_FACTOR })
 }
 
 function delete_pair({ key }) {
@@ -55,7 +43,25 @@ function delete_pair({ key }) {
   return { response_message: 'All good, I deleted the pair ;)' }
 }
 
-function on_command({ socket, event_, function_, ME, REPLICATION_FACTOR }) {
+function on_insert(socket, ME, MODE, REPLICATION_FACTOR) {
+  on_command({
+    socket, event_: 'insert', function_: insert_key_value, ME, MODE, REPLICATION_FACTOR
+  })
+}
+
+function on_query(socket, ME, MODE, REPLICATION_FACTOR) {
+  on_command({
+    socket, event_: 'query', function_: return_query_value, ME, MODE, REPLICATION_FACTOR
+  })
+}
+
+function on_delete(socket, ME, MODE, REPLICATION_FACTOR) {
+  on_command({
+    socket, event_: 'delete', function_: delete_pair, ME, MODE, REPLICATION_FACTOR
+  })
+}
+
+function on_command({ socket, event_, function_, ME, MODE, REPLICATION_FACTOR }) {
   socket.on('initial_' + event_, (object) => {
     show_event('initial_' + event_, object)
     call_hash_comparator({ ...object, initial_node:ME })
@@ -74,7 +80,7 @@ function on_command({ socket, event_, function_, ME, REPLICATION_FACTOR }) {
 
   socket.on(event_ + '_response', (object) => {
     // show_event(event_ + '_response', object)
-    get_front_socket().emit(event_ + '_response', object)
+    // get_front_socket().emit(event_ + '_response', object)
   })
 
   function call_hash_comparator(object){
@@ -115,10 +121,10 @@ function on_show_data(socket) {
   })
 }
 
-function command_events(socket, ME, REPLICATION_FACTOR) {
-  on_insert(socket, ME, REPLICATION_FACTOR)
-  on_query(socket, ME, REPLICATION_FACTOR)
-  on_delete(socket, ME, REPLICATION_FACTOR)
+function command_events(socket, ME, MODE, REPLICATION_FACTOR) {
+  on_insert(socket, ME, MODE, REPLICATION_FACTOR)
+  on_query(socket, ME, MODE, REPLICATION_FACTOR)
+  on_delete(socket, ME, MODE, REPLICATION_FACTOR)
   on_show_data(socket)
 }
 
@@ -129,4 +135,4 @@ module.exports = {
   get_my_key_value_pairs,
   set_my_key_value_pairs,
   show_key_value_pairs
- }
+}

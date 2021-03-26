@@ -18,8 +18,9 @@ const { replicate_events, join_replication } = require('./replication.js')
 const server = http.createServer(express())
 const io = socketio(server, { cors: { origin: '*' } })
 
-const REPLICATION_FACTOR = process.argv[2]
-const ME = process.argv[3]
+const MODE = process.argv[2]
+const REPLICATION_FACTOR = process.argv[3]
+const ME = process.argv[4]
 const BOOTSTRAP = '192.168.1.71:5000'
 
 const separator = ME.indexOf(':')
@@ -38,7 +39,7 @@ if (ME == BOOTSTRAP) {
     socket.on('join', ({ joiner }) => {
       // show_event('join', { joiner })
 
-      get_front_socket().emit('front_join', { joiner })
+      // get_front_socket().emit('front_join', { joiner })
       if (get_next() == BOOTSTRAP) {
         // Special case: only bootstrap is in the network, make 2 node network
         hit_node({
@@ -54,7 +55,7 @@ if (ME == BOOTSTRAP) {
 
     join_depart_events(socket)
 
-    command_events(socket, ME, REPLICATION_FACTOR)
+    command_events(socket, ME, MODE, REPLICATION_FACTOR)
 
     replicate_events(socket, ME)
   })
@@ -85,7 +86,7 @@ if (ME == BOOTSTRAP) {
 
     join_depart_events(socket)
 
-    command_events(socket, ME, REPLICATION_FACTOR)
+    command_events(socket, ME, MODE, REPLICATION_FACTOR)
 
     replicate_events(socket, ME)
   })
