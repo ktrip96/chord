@@ -124,7 +124,6 @@ export default function Functionalities({
     socket.on(
       `query_response`,
       ({ response_message, value, destination_node }) => {
-        console.log('Response_message:', response_message, 'Value is:', value)
         let result = 'Sorry :( I could not find the key you asked for'
         // eslint-disable-next-line eqeqeq
         if (value != undefined) {
@@ -148,7 +147,6 @@ export default function Functionalities({
     let socket = socketArray[ip]
     socket.emit(`initial_delete`, { key: deleteValue })
     socket.on(`delete_response`, ({ response_message }) => {
-      console.log('Response_message:', response_message)
       let result = response_message
       // eslint-disable-next-line eqeqeq
       setResult(result)
@@ -207,13 +205,13 @@ export default function Functionalities({
       setServerPort(5000)
     }
     setResult(result)
+    setTimeout(() => socket.close(), 1000)
   }
 
   const handleData = () => {
     let socket = socketArray[ip]
     socket.emit(`show_data`)
     socket.on(`show_data_response`, (response) => {
-      console.log('Data is', response)
       let result = JSON.stringify(response)
       // eslint-disable-next-line eqeqeq
       setResult(result)

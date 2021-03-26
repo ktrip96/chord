@@ -7,7 +7,7 @@ import Graph from './Graph'
 import Menu from './Menu'
 import node from '../images/Node.png'
 
-const bSocket = io(`http://192.168.1.71:5000`)
+const bSocket = io(`http://localhost:5000`)
 bSocket.emit('front_connection', { message: 'hello' })
 
 //  ***  Styling ***
@@ -169,18 +169,15 @@ export default function Chord() {
   const [socketArray, setSocketArray] = useState({ 5000: bSocket })
 
   useEffect(() => {
-    console.log('Use Effect Call')
     bSocket.on('front_join', ({ joiner }) => {
       // get joiner's port
       let port = joiner.slice(-4)
-      console.log('I connect to the joiner:', joiner)
       // Connect with Joiner
       let socket = io(`http://${joiner}`)
       // save Joiner's ip - Joiner's socket.
       setSocketArray((prev) => ({ ...prev, [port]: socket }))
       socket.emit('front_connection', { message: 'hello' })
       socket.on('front_connection_response', ({ previous, next }) => {
-        console.log('Front_connection_response')
         // get previous, and next node port
         let previousNeighbour = previous.slice(-4)
         let nextNeighbour = next.slice(-4)
