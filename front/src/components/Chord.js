@@ -7,7 +7,7 @@ import Graph from './Graph'
 import Menu from './Menu'
 import node from '../images/Node.png'
 
-const bSocket = io(`http://localhost:5000`)
+const bSocket = io(`http://192.168.1.71:5000`)
 bSocket.emit('front_connection', { message: 'hello' })
 
 //  ***  Styling ***
@@ -51,6 +51,7 @@ const HeaderGrid = styled.div`
 const Description = styled.div`
   font-size: 16px;
   font-family: 'Press Start 2P';
+  margin-bottom: 20px;
 `
 
 const MenuGrid = styled.div`
@@ -240,7 +241,10 @@ export default function Chord() {
         <nobr class='Lucky'>
           Welcome to the
           <a href='https://en.wikipedia.org/wiki/Chord_(peer-to-peer)'>
-            <span class='Lucky blue'> C</span>
+            <span class='Lucky blue'> T</span>
+            <span class='Lucky red'>O</span>
+            <span class='Lucky green'>Y</span>
+            <span class='Lucky blue'>C</span>
             <span class='Lucky red'>h</span>
             <span class='Lucky yellow'>o</span>
             <span class='Lucky blue'>r</span>
@@ -250,9 +254,9 @@ export default function Chord() {
         <Description>
           An implementation of a Distributed Hashing Table
         </Description>
-        <Alert status='info' style={{ fontSize: '10px', paddingLeft: '500px' }}>
+        <Alert status='info' style={{ fontSize: '16px', paddingLeft: '550px' }}>
           <AlertIcon />
-          {`You are handling requests for ${serverPort}`}
+          {`Current Node: ${serverPort}`}
         </Alert>
       </HeaderGrid>
 
