@@ -23,10 +23,14 @@ length = len(ips)
 while(len(query)!=0):
     random  = randrange(length)
     key  =  "'"+ query[0] + "'"
+    node  = "node"
+    event = "/home/gnostis/chord/back/commands/event.js"
+    arg1 = ips[random][0] + ":" + ips[random][1]
+    arg2 = "query"
     string = "node event.js " + ips[random][0] +\
     ":" + ips[random][1] + " query " + key
-    print(string)
-   # subprocess.call([string])
+   # print(string)
+    subprocess.call([node,event,arg1,arg2,key])
     query.pop(0)
 
 
