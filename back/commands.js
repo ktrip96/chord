@@ -9,20 +9,23 @@ const {
 const { hash_comparator } = require('./hash_comparator.js')
 
 let my_key_value_pairs = {}
-function show_key_value_pairs(){
-  console.log('\nKey-Value pairs:', my_key_value_pairs)
+function show_key_value_pairs(){ console.log('\nKey-Value pairs:', my_key_value_pairs) }
+function add_pair({ key, value }){
+  show_key_value_pairs()
+  console.log('\nAdding pair with key:', key)
+  console.log('Key hash:', sha1(key))
+  my_key_value_pairs = {...my_key_value_pairs, [key]:value }
+  show_key_value_pairs()
 }
+function get_my_key_value_pairs(){ return my_key_value_pairs }
+function set_my_key_value_pairs(pairs){ my_key_value_pairs = pairs }
 
 function on_insert(socket, ME, REPLICATION_FACTOR) {
   on_command({ socket, event_: 'insert', function_: insert_key_value, ME, REPLICATION_FACTOR })
 }
 
 function insert_key_value({ key, value }) {
-  show_key_value_pairs()
-  console.log('\nAdding pair with key:', key)
-  console.log('Key hash:', sha1(key))
-  my_key_value_pairs = {...my_key_value_pairs, [key]:value }
-  show_key_value_pairs()
+  add_pair({ key, value })
   return { response_message: 'All good, I added the pair ;)' }
 }
 
@@ -64,14 +67,14 @@ function on_command({ socket, event_, function_, ME, REPLICATION_FACTOR }) {
   })
 
   socket.on(event_ + '_reached_destination', (object) => {
-    show_event(event_ + '_reached_destination', object)
+    // show_event(event_ + '_reached_destination', object)
 
-    replication_and_response(object)
+    replication_and_response({ object, event_ })
   })
 
   socket.on(event_ + '_response', (object) => {
-    show_event(event_ + '_response', object)
-    // get_front_socket().emit(event_ + '_response', object)
+    // show_event(event_ + '_response', object)
+    get_front_socket().emit(event_ + '_response', object)
   })
 
   function call_hash_comparator(object){
@@ -80,16 +83,16 @@ function on_command({ socket, event_, function_, ME, REPLICATION_FACTOR }) {
       ME,
       functions_list: [
         { function_: hit_previous,             argument: { event_: 'forward_' + event_, object }             },
-        { function_: replication_and_response, argument: object                                              },
+        { function_: replication_and_response, argument: { object, event_ }                                  },
         { function_: hit_next,                 argument: { event_: event_ + '_reached_destination', object } },
         { function_: hit_next,                 argument: { event_: 'forward_' + event_, object }             }
       ]
     })
   }
 
-  function replication_and_response(object){
+  function replication_and_response({ object, event_ }){
     response = function_(object)
-    if (REPLICATION_FACTOR == 1)
+    if (REPLICATION_FACTOR == 1 || event_ == 'query')
       hit_node({
         node: object['initial_node'], event_: event_ + '_response', object: { ...response, destination_node:ME }
       })
@@ -105,10 +108,25 @@ function on_command({ socket, event_, function_, ME, REPLICATION_FACTOR }) {
   }
 }
 
-function command_events(socket, ME, REPLICATION_FACTOR) {
-    on_insert(socket, ME, REPLICATION_FACTOR)
-    on_query(socket, ME, REPLICATION_FACTOR)
-    on_delete(socket, ME, REPLICATION_FACTOR)
+function on_show_data(socket) {
+  socket.on('show_data', () => {
+    show_event('show_data', my_key_value_pairs)
+    socket.emit('show_data_response', my_key_value_pairs)
+  })
 }
 
-module.exports = { command_events, insert_key_value, delete_pair  }
+function command_events(socket, ME, REPLICATION_FACTOR) {
+  on_insert(socket, ME, REPLICATION_FACTOR)
+  on_query(socket, ME, REPLICATION_FACTOR)
+  on_delete(socket, ME, REPLICATION_FACTOR)
+  on_show_data(socket)
+}
+
+module.exports = {
+  command_events,
+  insert_key_value,
+  delete_pair,
+  get_my_key_value_pairs,
+  set_my_key_value_pairs,
+  show_key_value_pairs
+ }

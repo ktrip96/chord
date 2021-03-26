@@ -8,11 +8,11 @@ const sha1 = require('sha1')
 const {
   set_previous, set_next, set_front_socket,
   get_previous, get_next, get_front_socket,
-  show_neighbours, show_event, hit_node
+  show_neighbours, show_event, hit_node 
 } = require('./globals.js')
-const { join_general_case, on_update_neighbour, depart } = require('./join_depart.js')
+const { join_general_case, join_depart_events, depart } = require('./join_depart.js')
 const { command_events } = require('./commands.js')
-const { replicate_events } = require('./replication.js')
+const { replicate_events, join_replication } = require('./replication.js')
 
 // consts
 const server = http.createServer(express())
@@ -36,9 +36,9 @@ if (ME == BOOTSTRAP) {
   io.on('connection', (socket) => {
 
     socket.on('join', ({ joiner }) => {
-      show_event('join', { joiner })
+      // show_event('join', { joiner })
 
-      // get_front_socket().emit('front_join', { joiner })
+      get_front_socket().emit('front_join', { joiner })
       if (get_next() == BOOTSTRAP) {
         // Special case: only bootstrap is in the network, make 2 node network
         hit_node({
@@ -52,11 +52,11 @@ if (ME == BOOTSTRAP) {
 
     on_front_connection(socket)
 
-    on_update_neighbour(socket)
+    join_depart_events(socket)
 
     command_events(socket, ME, REPLICATION_FACTOR)
 
-    replicate_events(socket)
+    replicate_events(socket, ME)
   })
 } else {
   // Non bootstrap code: Begin by asking BOOTSTRAP to join
@@ -66,13 +66,16 @@ if (ME == BOOTSTRAP) {
   io.on('connection', (socket) => {
 
     socket.on('join_response', ({ joiner_previous, joiner_next }) => {
-      show_event('join_response', { joiner_previous, joiner_next })
+      // show_event('join_response', { joiner_previous, joiner_next })
       set_previous(joiner_previous); set_next(joiner_next)
+
+      join_replication(ME)
+
       show_neighbours()
     })
 
     socket.on('forward_join', ({ joiner }) => {
-      show_event('forward_join', { joiner })
+      // show_event('forward_join', { joiner })
       join_general_case(joiner, ME)
     })
 
@@ -80,11 +83,11 @@ if (ME == BOOTSTRAP) {
 
     on_front_connection(socket)
 
-    on_update_neighbour(socket)
+    join_depart_events(socket)
 
     command_events(socket, ME, REPLICATION_FACTOR)
 
-    replicate_events(socket)
+    replicate_events(socket, ME)
   })
 }
 
