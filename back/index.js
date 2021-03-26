@@ -1,4 +1,5 @@
 // required
+const fs = require('fs')
 const express = require('express')
 const socketio = require('socket.io')
 const http = require('http')
@@ -8,7 +9,7 @@ const sha1 = require('sha1')
 const {
   set_previous, set_next, set_front_socket,
   get_previous, get_next, get_front_socket,
-  show_neighbours, show_event, hit_node 
+  show_neighbours, show_event, hit_node, hit_next
 } = require('./globals.js')
 const { join_general_case, join_depart_events, depart } = require('./join_depart.js')
 const { command_events } = require('./commands.js')
@@ -58,6 +59,8 @@ if (ME == BOOTSTRAP) {
     command_events(socket, ME, MODE, REPLICATION_FACTOR)
 
     replicate_events(socket, ME)
+
+    on_create_nodes_file(socket)
   })
 } else {
   // Non bootstrap code: Begin by asking BOOTSTRAP to join
@@ -89,6 +92,8 @@ if (ME == BOOTSTRAP) {
     command_events(socket, ME, MODE, REPLICATION_FACTOR)
 
     replicate_events(socket, ME)
+
+    on_create_nodes_file(socket)
   })
 }
 
@@ -97,6 +102,20 @@ function on_front_connection(socket) {
     show_event('front_connection', {})
     set_front_socket(socket)
     socket.emit('front_connection_response', { previous: get_previous() , next: get_next() })
+  })
+}
+
+function on_create_nodes_file(socket) {
+  socket.on('create_nodes_file', () => {
+    show_event('create_nodes_file', {})
+
+    fs.appendFile('/home/gnostis/chord/input/ips.txt', ME + '\n', function (err) {
+      if (err) throw err;
+      console.log('Saved!')
+    })
+
+    if (ME != BOOTSTRAP)
+      hit_next({ event_:'create_nodes_file', object: {} })
   })
 }
 
