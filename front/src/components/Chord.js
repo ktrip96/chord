@@ -165,15 +165,18 @@ export default function Chord() {
       },
     },
   ])
+  const [socketArray, setSocketArray] = useState({ 5000: bSocket })
 
   useEffect(() => {
     console.log('Use Effect Call')
     bSocket.on('front_join', ({ joiner }) => {
       // get joiner's port
       let port = joiner.slice(-4)
-
+      console.log('I connect to the joiner:', joiner)
       // Connect with Joiner
       let socket = io(`http://${joiner}`)
+      // save Joiner's ip - Joiner's socket.
+      setSocketArray((prev) => ({ ...prev, [port]: socket }))
       socket.emit('front_connection', { message: 'hello' })
       socket.on('front_connection_response', ({ previous, next }) => {
         console.log('Front_connection_response')
@@ -220,11 +223,9 @@ export default function Chord() {
         }
 
         const updatedEdgeArray = Join(port, previousNeighbour, nextNeighbour)
-        console.log({ updatedEdgeArray })
 
         // κάνω merge των καινούργιο node Array με τον καινούργιο edge
         const finalArray = updatedPortArray.concat(updatedEdgeArray)
-        console.log({ finalArray })
 
         // Κάνω update το state
 
@@ -271,6 +272,7 @@ export default function Chord() {
           setPortArray={setPortArray}
           setServerPort={setServerPort}
           portArray={portArray}
+          socketArray={socketArray}
         />
       </MenuGrid>
     </GeneralGrid>

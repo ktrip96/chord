@@ -12,8 +12,8 @@ const FuncGrid = styled.div`
     'h h'
     'q q'
     'i i'
-    'd d'
-    'o o';
+    'o o'
+    'd d';
 `
 const Header = styled.div`
   font-family: 'Press Start 2P';
@@ -34,11 +34,14 @@ export default function Functionalities({
   setPortArray,
   portArray,
   setServerPort,
+  socketArray,
 }) {
   const [showQuery, setShowQuery] = useState(false)
   const [queryValue, setQueryValue] = useState('')
   const [showInsert, setShowInsert] = useState(false)
   const [insertValue, setInsertValue] = useState('')
+  const [showDelete, setShowDelete] = useState(false)
+  const [deleteValue, setDeleteValue] = useState('')
   const [color, setColor] = useState('')
 
   const ButtonContainer = styled.div`
@@ -52,6 +55,44 @@ export default function Functionalities({
       background-color: ${color};
     }
   `
+
+  const handleInsert = () => {
+    let socket = socketArray[ip]
+    socket.emit(`initial_insert`, {
+      key: insertValue.slice(0, insertValue.indexOf(',')).trim(),
+      value: insertValue.slice(insertValue.indexOf(',') + 1).trim(),
+    })
+    socket.on(`insert_response`, ({ response_message }) => {
+      let result = response_message
+      setResult(result)
+      setShowInsert((value) => !value)
+    })
+  }
+
+  const handleQuery = () => {
+    let socket = socketArray[ip]
+    socket.emit(`initial_query`, { key: queryValue })
+    socket.on(`query_response`, ({ response_message, value }) => {
+      console.log('Response_message:', response_message, 'Value is:', value)
+      let result = 'Sorry :( I could not find the key you asked for'
+      // eslint-disable-next-line eqeqeq
+      if (value != undefined) result = response_message + ' ' + value
+      setResult(result)
+      setShowQuery((value) => !value)
+    })
+  }
+
+  const handleDelete = () => {
+    let socket = socketArray[ip]
+    socket.emit(`initial_delete`, { key: deleteValue })
+    socket.on(`delete_response`, ({ response_message }) => {
+      console.log('Response_message:', response_message)
+      let result = response_message
+      // eslint-disable-next-line eqeqeq
+      setResult(result)
+      setShowDelete((value) => !value)
+    })
+  }
 
   return (
     <FuncGrid>
@@ -76,8 +117,7 @@ export default function Functionalities({
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              let result = `I run query for ${ip} looking for ${queryValue}`
-              setResult(result)
+              handleQuery()
             }}
           >
             <div style={{ display: 'flex' }}>
@@ -118,8 +158,7 @@ export default function Functionalities({
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              let result = `I run insert for ${ip} inserting ${insertValue}`
-              setResult(result)
+              handleInsert()
             }}
           >
             <div style={{ display: 'flex' }}>
@@ -175,23 +214,47 @@ export default function Functionalities({
         </Button>
       </ButtonContainer>
 
-      {/* Overlay */}
+      {/* Delete */}
       <ButtonContainer
-        style={{ gridArea: 'o' }}
+        style={{ gridArea: 'o', justifyContent: 'space-evenly' }}
         onMouseEnter={() => setColor('#aed581')}
         onMouseLeave={() => setColor('#fff')}
       >
         <Button
-          w={200}
           size='md'
+          w={200}
           colorScheme='green'
           onClick={() => {
-            let result = `Overlay is not implemented yet `
-            setResult(result)
+            setShowDelete((value) => !value)
           }}
         >
-          Overlay
+          {showDelete ? 'Hide' : 'Delete'}
         </Button>
+        {showDelete && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleDelete()
+            }}
+          >
+            <div style={{ display: 'flex' }}>
+              <Input
+                bg='#fff'
+                onChange={(e) => setDeleteValue(e.target.value)}
+                type='text'
+                value={deleteValue}
+                autoFocus={true}
+                placeholder='Type a value to delete'
+              />
+              <IconButton
+                colorScheme='whatsapp'
+                type='submit'
+                aria-label='Submit'
+                icon={<CheckIcon />}
+              />
+            </div>
+          </form>
+        )}
       </ButtonContainer>
     </FuncGrid>
   )
