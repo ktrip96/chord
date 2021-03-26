@@ -27,14 +27,25 @@ while(len(requests)!=0):
     random  = randrange(length)
     if len(requests[0]) ==1 :
         key = "'" + requests[0][0] + "'"
+        node = "node"
+        event = "event.js"
+        arg1 = ips[random][0]+ ":" + ips[random][1]
+        arg2 = "query"
+        arg3 = key
         string = "node event.js " + ips[random][0] +\
         ":" + ips[random][1] + " query " + key
+        subprocess.call([node,event,arg1,arg2,arg3])
     elif len(requests[0]) == 2:
         key  =  "'"+ requests[0][0] + "'"
+        node = "node"
+        event = "event.js"
+        arg1 = ips[random][0]+ ":" + ips[random][1]
+        arg2 = "insert"
+        arg3 = key
+        arg4 = requests[0][1]
         string = "node event.js " + ips[random][0] +\
         ":" + ips[random][1] + " insert " + key + " " + requests[0][1]
-    print(string)
-   # subprocess.call([string])
+        subprocess.call([node,event,arg1,arg2,arg3,arg4])
     requests.pop(0)
 
 
