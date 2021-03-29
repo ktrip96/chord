@@ -28,22 +28,22 @@ while(len(requests)!=0):
     if len(requests[0]) ==1 :
         key = "'" + requests[0][0] + "'"
         node = "node"
-        event = "event.js"
+        event = "/home/gnostis/chord/back/commands/event.js"
         arg1 = ips[random][0]+ ":" + ips[random][1]
         arg2 = "query"
         arg3 = key
-        string = "node event.js " + ips[random][0] +\
+        string = "node /home/gnostis/chord/back/commands/event.js " + ips[random][0] +\
         ":" + ips[random][1] + " query " + key
         subprocess.call([node,event,arg1,arg2,arg3])
     elif len(requests[0]) == 2:
         key  =  "'"+ requests[0][0] + "'"
         node = "node"
-        event = "event.js"
+        event = "/home/gnostis/chord/back/commands/event.js"
         arg1 = ips[random][0]+ ":" + ips[random][1]
         arg2 = "insert"
         arg3 = key
         arg4 = requests[0][1]
-        string = "node event.js " + ips[random][0] +\
+        string = "node /home/gnostis/chord/back/commands/event.js " + ips[random][0] +\
         ":" + ips[random][1] + " insert " + key + " " + requests[0][1]
         subprocess.call([node,event,arg1,arg2,arg3,arg4])
     requests.pop(0)

@@ -6,29 +6,40 @@ const http = require('http')
 const client_io = require('socket.io-client')
 const sha1 = require('sha1')
 
+// src required
 const {
-  set_previous, set_next, set_front_socket,
-  get_previous, get_next, get_front_socket,
-  show_neighbours, show_event, hit_node, hit_next
-} = require('./globals.js')
-const { join_general_case, join_depart_events, depart } = require('./join_depart.js')
-const { command_events } = require('./commands.js')
-const { replicate_events, join_replication } = require('./replication.js')
+  set_my_address, set_previous, set_next, set_front_socket, // set
+  get_my_address, get_previous, get_next, // get
+  show_event, // show
+  hit_node, hit_next // hit
+} = require('./src/globals.js')
+const {
+  on_join, non_bootstrap_join_events, on_update_neighbour, // join
+  on_depart // depart
+} = require('./src/join_depart.js')
+const { command_events } = require('./src/commands.js')
+const { replicate_events } = require('./src/replication.js')
 
-// consts
+// boilerplate
 const server = http.createServer(express())
 const io = socketio(server, { cors: { origin: '*' } })
 
+// consts
 const MODE = process.argv[2]
 const REPLICATION_FACTOR = process.argv[3]
-const ME = process.argv[4]
+
 const BOOTSTRAP = '192.168.1.71:5000'
+
+const ME = process.argv[4]
+set_my_address(ME)
+
+const MY_HASH = sha1(process.argv[4])
+console.log('My hash:', MY_HASH)
 
 const separator = ME.indexOf(':')
 const MY_PORT = ME.slice(separator + 1)
-const MY_HASH = sha1(ME)
-console.log('My hash:', MY_HASH)
 
+// juice
 if (ME == BOOTSTRAP) {
   // Bootstrap code: Initially next = previous = BOOTSTRAP
 
@@ -36,30 +47,16 @@ if (ME == BOOTSTRAP) {
   set_next(BOOTSTRAP)
 
   io.on('connection', (socket) => {
+    // events
 
-    socket.on('join', ({ joiner }) => {
-      // show_event('join', { joiner })
+    on_join(socket, BOOTSTRAP)
+    on_update_neighbour(socket)
 
-      // get_front_socket().emit('front_join', { joiner })
-      if (get_next() == BOOTSTRAP) {
-        // Special case: only bootstrap is in the network, make 2 node network
-        hit_node({
-          node: joiner, event_: 'join_response', object: { joiner_previous: BOOTSTRAP, joiner_next: BOOTSTRAP }
-        })
-        set_previous(joiner); set_next(joiner)
-        show_neighbours()
-      } else 
-        join_general_case(joiner, ME)
-    })
+    command_events(socket, MODE, REPLICATION_FACTOR)
+
+    replicate_events(socket)
 
     on_front_connection(socket)
-
-    join_depart_events(socket)
-
-    command_events(socket, ME, MODE, REPLICATION_FACTOR)
-
-    replicate_events(socket, ME)
-
     on_create_nodes_file(socket)
   })
 } else {
@@ -68,31 +65,18 @@ if (ME == BOOTSTRAP) {
   hit_node({ node: BOOTSTRAP, event_: 'join', object: { joiner:ME } })
 
   io.on('connection', (socket) => {
+    // events
 
-    socket.on('join_response', ({ joiner_previous, joiner_next }) => {
-      // show_event('join_response', { joiner_previous, joiner_next })
-      set_previous(joiner_previous); set_next(joiner_next)
+    non_bootstrap_join_events(socket)
+    on_update_neighbour(socket)
 
-      join_replication(ME)
+    on_depart(socket)
 
-      show_neighbours()
-    })
+    command_events(socket, MODE, REPLICATION_FACTOR)
 
-    socket.on('forward_join', ({ joiner }) => {
-      // show_event('forward_join', { joiner })
-      join_general_case(joiner, ME)
-    })
-
-    socket.on('depart', () => { show_event('depart', {}); depart() })
+    replicate_events(socket)
 
     on_front_connection(socket)
-
-    join_depart_events(socket)
-
-    command_events(socket, ME, MODE, REPLICATION_FACTOR)
-
-    replicate_events(socket, ME)
-
     on_create_nodes_file(socket)
   })
 }
@@ -100,6 +84,7 @@ if (ME == BOOTSTRAP) {
 function on_front_connection(socket) {
   socket.on('front_connection', () => {
     show_event('front_connection', {})
+
     set_front_socket(socket)
     socket.emit('front_connection_response', { previous: get_previous() , next: get_next() })
   })

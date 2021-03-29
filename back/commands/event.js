@@ -13,4 +13,7 @@ else {
   socket.emit('initial_' + event_, object)
 }
 
-setTimeout(() => process.exit(),1000)
+socket.on(event_ + 'response' , object => {
+  console.log(object)
+  socket.close()
+})
