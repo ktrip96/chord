@@ -3,8 +3,8 @@ const sha1 = require('sha1')
 
 // src required
 const {
-  get_my_address, get_front_socket, // get
-  show_event, // show
+  get_my_address, get_mode, get_replication_factor, get_front_socket, // get
+  show_event, general_debugging, // show
   hit_node, hit_previous, hit_next // hit
 } = require('./globals.js')
 const { hash_comparator } = require('./hash_comparator.js')
@@ -30,7 +30,7 @@ function add_pair_and_respond({ key, value }) {
 }
 
 // query
-function return_query_value({ key }) {
+function query_response({ key }) {
   show_key_value_pairs()
   return {
     response_message: 'Here\'s the value you asked for sir:',
@@ -46,75 +46,90 @@ function delete_pair(key) {
   show_key_value_pairs()
 }
 function delete_pair_and_respond({ key }) {
-  if (my_key_value_pairs[key] == null)
-    return { response_message: 'No such key' }
   delete_pair(key)
   return { response_message: 'All good, I deleted the pair ;)' }
 }
 
-function on_insert(socket, MODE, REPLICATION_FACTOR) {
-  on_command({
-    socket, event_: 'insert', function_: add_pair_and_respond, MODE, REPLICATION_FACTOR
-  })
-}
+function on_insert(socket) { on_command({ socket, event_: 'insert', function_: add_pair_and_respond }) }
+function on_query(socket) { on_command({ socket, event_: 'query', function_: query_response }) }
+function on_delete(socket) { on_command({ socket, event_: 'delete', function_: delete_pair_and_respond }) }
 
-function on_query(socket, MODE, REPLICATION_FACTOR) {
-  on_command({
-    socket, event_: 'query', function_: return_query_value, MODE, REPLICATION_FACTOR
-  })
-}
+let event_socket = null
+function on_command({ socket, event_, function_ }) {
+  socket.on(event_, (object) => {
+    show_event(event_, object)
 
-function on_delete(socket, MODE, REPLICATION_FACTOR) {
-  on_command({
-    socket, event_: 'delete', function_: delete_pair_and_respond, MODE, REPLICATION_FACTOR
-  })
-}
-
-function on_command({ socket, event_, function_, MODE, REPLICATION_FACTOR }) {
-  socket.on('initial_' + event_, (object) => {
-    // show_event('initial_' + event_, object)
-
-    if (MODE == 'l') 
-      call_hash_comparator({ ...object, initial_node:get_my_address() })
+    event_socket = socket
+    let key = object['key']
+    if (get_mode() == 'eventual_consistency' && event_ == 'query' && key in my_key_value_pairs)
+      socket.emit('query_response', query_response({ key }))
+    else
+      call_hash_comparator({ ...object, initial_node: get_my_address() })
   })
 
   socket.on('forward_' + event_, (object) => {
-    // show_event('forward_' + event_, object)
-    call_hash_comparator(object)
+    show_event('forward_' + event_, object)
+
+    let key = object['key']
+    if (get_mode() == 'eventual_consistency' && event_ == 'query' && key in my_key_value_pairs)
+      hit_node({
+        node: object['initial_node'], event_: 'query_response',
+        object: { ...query_response({ key }), initial_socket: object['initial_socket'] }
+      })
+    else
+      call_hash_comparator(object)
   })
 
   socket.on(event_ + '_response', (object) => {
     show_event(event_ + '_response', object)
+
     // get_front_socket().emit(event_ + '_response', object)
+    event_socket.emit(event_ + '_response', object)
   })
 
   function call_hash_comparator(object){
     hash_comparator({
       to_be_hashed: object['key'],
       functions_list: [
-        { function_: hit_previous,             argument: { event_: 'forward_' + event_, object } },
-        { function_: replication_and_response, argument: { object, event_ }                      },
-        { function_: hit_next,                 argument: { event_: 'forward_' + event_, object } }
+        { function_: hit_previous,                argument: { event_: 'forward_' + event_, object } },
+        { function_: corresponding_node_function, argument: { object, event_ }                      },
+        { function_: hit_next,                    argument: { event_: 'forward_' + event_, object } }
       ]
     })
   }
 
-  function replication_and_response({ object, event_ }){
-    response = function_(object)
-    if (REPLICATION_FACTOR == 1 || event_ == 'query')
+  function corresponding_node_function({ object, event_ }){
+    let replication_factor = get_replication_factor()
+    let have_key = object['key'] in my_key_value_pairs
+
+    if ((event_ == 'query' || event_ == 'delete') && !have_key)
       hit_node({
         node: object['initial_node'], event_: event_ + '_response',
-        object: { ...response, destination_node: get_my_address() }
+        object: { response_message: 'No such key', corresponding_node: get_my_address() }
       })
-    else
-      hit_next({
-        event_:'replicate_' + event_,
-        object: {
-          argument: object,
-          n: REPLICATION_FACTOR - 1,
-          replication_initial_node: get_my_address()
-        }
+    else {
+      function replicate() {
+        hit_next({
+          event_:'replicate_' + event_,
+          object: {
+            argument: object,
+            n: replication_factor - 1,
+            replication_initial_node: get_my_address()
+          }
+        })
+      }
+
+      let replication_needed = (replication_factor > 1 && event_ != 'query')
+      let mode = get_mode()
+      if (replication_needed && mode == 'linearizability')
+        replicate()
+      hit_node({
+        node: object['initial_node'], event_: event_ + '_response',
+        object: { ...function_(object), corresponding_node: get_my_address() }
       })
+      if (replication_needed && mode == 'eventual_consistency')
+        replicate()
+    }
   }
 }
 
@@ -125,10 +140,10 @@ function on_show_data(socket) {
   })
 }
 
-function command_events(socket, MODE, REPLICATION_FACTOR) {
-  on_insert(socket, MODE, REPLICATION_FACTOR)
-  on_query(socket, MODE, REPLICATION_FACTOR)
-  on_delete(socket, MODE, REPLICATION_FACTOR)
+function command_events(socket) {
+  on_insert(socket)
+  on_query(socket)
+  on_delete(socket)
   on_show_data(socket)
 }
 

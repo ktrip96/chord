@@ -40,7 +40,7 @@ function on_replicate({ socket, event_, function_ }) {
     response_message = object['response_message']
     hit_node({
       node: object['initial_node'], event_: event_ + '_response',
-      object: { response_message, destination_node: get_my_address() }
+      object: { response_message, corresponding_node: get_my_address() }
     })
   })
 }

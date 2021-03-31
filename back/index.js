@@ -8,8 +8,8 @@ const sha1 = require('sha1')
 
 // src required
 const {
-  set_my_address, set_previous, set_next, set_front_socket, // set
-  get_my_address, get_previous, get_next, // get
+  set_my_address, set_neighbours, set_parameters, set_front_socket, // set
+  get_my_address, get_my_hash, get_previous, get_next, // get
   show_event, // show
   hit_node, hit_next // hit
 } = require('./src/globals.js')
@@ -25,54 +25,40 @@ const server = http.createServer(express())
 const io = socketio(server, { cors: { origin: '*' } })
 
 // consts
-const MODE = process.argv[2]
-const REPLICATION_FACTOR = process.argv[3]
-
 const BOOTSTRAP = '192.168.1.71:5000'
-
 const ME = process.argv[4]
+const MY_PORT = ME.slice(ME.indexOf(':') + 1)
+
+// set globals
+set_parameters({ mode: process.argv[2], replication_factor: process.argv[3] })
 set_my_address(ME)
-
-const MY_HASH = sha1(process.argv[4])
-console.log('My hash:', MY_HASH)
-
-const separator = ME.indexOf(':')
-const MY_PORT = ME.slice(separator + 1)
+console.log('My hash:', get_my_hash())
 
 // juice
-if (ME == BOOTSTRAP) {
-  // Bootstrap code: Initially next = previous = BOOTSTRAP
+if (ME == BOOTSTRAP) { // Bootstrap code
+  set_neighbours({ previous: BOOTSTRAP, next: BOOTSTRAP})
 
-  set_previous(BOOTSTRAP)
-  set_next(BOOTSTRAP)
-
-  io.on('connection', (socket) => {
-    // events
-
+  io.on('connection', (socket) => { // events
     on_join(socket, BOOTSTRAP)
     on_update_neighbour(socket)
 
-    command_events(socket, MODE, REPLICATION_FACTOR)
+    command_events(socket)
 
     replicate_events(socket)
 
     on_front_connection(socket)
     on_create_nodes_file(socket)
   })
-} else {
-  // Non bootstrap code: Begin by asking BOOTSTRAP to join
-
+} else { // Non bootstrap code
   hit_node({ node: BOOTSTRAP, event_: 'join', object: { joiner:ME } })
 
-  io.on('connection', (socket) => {
-    // events
-
+  io.on('connection', (socket) => { // events
     non_bootstrap_join_events(socket)
     on_update_neighbour(socket)
 
     on_depart(socket)
 
-    command_events(socket, MODE, REPLICATION_FACTOR)
+    command_events(socket)
 
     replicate_events(socket)
 
