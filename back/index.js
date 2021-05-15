@@ -36,6 +36,7 @@ console.log('My hash:', get_my_hash())
 
 // juice
 if (ME == BOOTSTRAP) { // Bootstrap code
+
   set_neighbours({ previous: BOOTSTRAP, next: BOOTSTRAP})
 
   io.on('connection', (socket) => { // events
@@ -76,17 +77,27 @@ function on_front_connection(socket) {
   })
 }
 
+let create_nodes_file_socket = null
 function on_create_nodes_file(socket) {
   socket.on('create_nodes_file', () => {
     show_event('create_nodes_file', {})
 
-    fs.appendFile('/home/gnostis/chord/input/ips.txt', ME + '\n', function (err) {
-      if (err) throw err;
-      console.log('Saved!')
-    })
+    function write_my_ip_to_file_and_hit_next() {
+      fs.appendFile('../input/ips.txt', ME + '\n', function (err) {
+        if (err) throw err;
+        console.log('Saved!')
+      })
+      hit_next({ event_:'create_nodes_file' })
+    }
 
-    if (ME != BOOTSTRAP)
-      hit_next({ event_:'create_nodes_file', object: {} })
+    if (ME == BOOTSTRAP)
+      if (create_nodes_file_socket == null) {
+        create_nodes_file_socket = socket
+        write_my_ip_to_file_and_hit_next()
+      } else
+        create_nodes_file_socket.emit('create_nodes_file_response', { response: 'file created!' })
+    else
+      write_my_ip_to_file_and_hit_next()
   })
 }
 

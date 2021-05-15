@@ -47,6 +47,3 @@ while(len(requests)!=0):
         ":" + ips[random][1] + " insert " + key + " " + requests[0][1]
         subprocess.call([node,event,arg1,arg2,arg3,arg4])
     requests.pop(0)
-
-
-

@@ -32,6 +32,3 @@ while(len(query)!=0):
    # print(string)
     subprocess.call([node,event,arg1,arg2,key])
     query.pop(0)
-
-
-

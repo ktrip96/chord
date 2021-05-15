@@ -22,7 +22,7 @@ i=0
 length = len(ips)
 while(len(insert)!=0):
     random  = randrange(length)
-    key  =  "'"+ insert[0][0] + "'"
+    key  =  "'" + insert[0][0] + "'"
     node = "node"
     event  = "/home/gnostis/chord/back/commands/event.js"
     arg1 = ips[random][0] + ":" + ips[random][1]
@@ -33,6 +33,3 @@ while(len(insert)!=0):
     #print(string)
     subprocess.call([node,event,arg1,arg2,key,arg3])
     insert.pop(0)
-
-
-

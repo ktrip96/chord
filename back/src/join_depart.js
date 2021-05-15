@@ -22,7 +22,7 @@ function non_bootstrap_join_events(socket) {
 // events
 function on_join(socket, BOOTSTRAP) {
   socket.on('join', ({ joiner }) => {
-    show_event('join', { joiner })
+    // show_event('join', { joiner })
 
     // get_front_socket().emit('front_join', { joiner })
 
@@ -40,14 +40,14 @@ function on_join(socket, BOOTSTRAP) {
 }
 function on_forward_join(socket) {
   socket.on('forward_join', ({ joiner }) => {
-    show_event('forward_join', { joiner })
+    // show_event('forward_join', { joiner })
 
     join_general_case(joiner)
   })
 }
 function on_join_neighbours_response(socket) {
   socket.on('join_neighbours_response', (neighbours) => {
-    show_event('join_neighbours_response', neighbours)
+    // show_event('join_neighbours_response', neighbours)
 
     set_neighbours(neighbours)
     join_replication(get_my_address())

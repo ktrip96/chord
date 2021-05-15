@@ -18,11 +18,11 @@ function show_key_value_pairs(){ console.log('\nKey-Value pairs:', my_key_value_
 
 // add
 function add_pair({ key, value }){
-  show_key_value_pairs()
+  // show_key_value_pairs()
   console.log('\nAdding pair with key:', key)
   console.log('Key hash:', sha1(key))
   my_key_value_pairs = {...my_key_value_pairs, [key]:value }
-  show_key_value_pairs()
+  // show_key_value_pairs()
 }
 function add_pair_and_respond({ key, value }) {
   add_pair({ key, value })
@@ -81,7 +81,7 @@ function on_command({ socket, event_, function_ }) {
   })
 
   socket.on(event_ + '_response', (object) => {
-    show_event(event_ + '_response', object)
+    // show_event(event_ + '_response', object)
 
     // get_front_socket().emit(event_ + '_response', object)
     event_socket.emit(event_ + '_response', object)
