@@ -8,6 +8,7 @@ Our goal was to implement a **file-sharing application**.
 The technologies we used: 
 - **Node Js**
 - **React JS**
+- **Socket.io**
 
 ## Description of project
 
