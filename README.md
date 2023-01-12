@@ -10,6 +10,10 @@ The technologies we used:
 - **React JS**
 - **Socket.io**
 
+## Preview
+
+<img src="chord.gif" width="1000">
+
 ## Description of project
 
 You could briefly say that toyChord is a distributed database. :floppy_disk:
