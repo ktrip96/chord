@@ -14,6 +14,9 @@ The technologies we used:
 
 <img src="chord.gif" width="1000">
 
+##### GIF explaining
+Everytime I run the script, I am actually adding a new virtual computer into the Distributed Database System. The Front End is updated immediately, because it communicates with the system via sockets.
+
 ## Description of project
 
 You could briefly say that toyChord is a distributed database. :floppy_disk:
